@@ -1,0 +1,37 @@
+#!/bin/sh
+
+check()
+{
+	command -v "$1" >/dev/null 2>/dev/null && return 0
+	printf "Command not found: %s\n" "$1" >&2
+	exit 255
+}
+
+check make-package
+check ar-stream
+check tar-stream
+
+DIR=${1:-.}
+
+cd "$DIR"
+
+if [ ! -r DEBIAN/control ]
+then
+	printf "No control file\n" >&2
+	exit 1
+fi
+
+NAME=`grep ^Package: DEBIAN/control`
+NAME=${NAME#Package: }
+
+VERSION=`grep ^Version: DEBIAN/control`
+VERSION=${VERSION#Version: }
+
+test -e "${POOLDIR}/${NAME}_${VERSION}.deb" && {
+	printf "${NAME}:${VERSION} already built\n" >&2
+	exit 0
+}
+
+make -f DEBIAN/Makefile build && \
+make -f DEBIAN/Makefile manifest && \
+make-package "$DIR" "${POOLDIR}/${NAME}_${VERSION}.deb"

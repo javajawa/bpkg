@@ -1,0 +1,10 @@
+Package: bpkg
+Version: 1.0-1
+Section: devel
+Priority: optional
+Architecture: all
+Build-Depends: c-compiler | gcc, make
+Depends: libc6
+Essential: no
+Maintainer: Benedict Harcourt <ben@tea-cats.co.uk>
+Description: Configuration files for fakeuser
