@@ -30,7 +30,7 @@ build:
 real-build: $(TARGETS)
 
 manifest: build
-	find ./usr >$@
+	find ./etc ./usr >$@
 
 clean:
 	rm -Rf *.o usr manifest

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /etc/bpkg.conf
+
 check()
 {
 	command -v "$1" >/dev/null 2>/dev/null && return 0
@@ -11,20 +13,25 @@ check make-package
 check ar-stream
 check tar-stream
 
+mkdir -p "${POOLDIR}" || {
+	echo "wat" >&2
+	exit 1
+}
+
 DIR=${1:-.}
 
 cd "$DIR"
 
-if [ ! -r DEBIAN/control ]
+if [ ! -r debian/control ]
 then
 	printf "No control file\n" >&2
 	exit 1
 fi
 
-NAME=`grep ^Package: DEBIAN/control`
+NAME=`grep ^Package: debian/control`
 NAME=${NAME#Package: }
 
-VERSION=`grep ^Version: DEBIAN/control`
+VERSION=`grep ^Version: debian/control`
 VERSION=${VERSION#Version: }
 
 test -e "${POOLDIR}/${NAME}_${VERSION}.deb" && {
@@ -32,6 +39,11 @@ test -e "${POOLDIR}/${NAME}_${VERSION}.deb" && {
 	exit 0
 }
 
-make -f DEBIAN/Makefile build && \
-make -f DEBIAN/Makefile manifest && \
-make-package "$DIR" "${POOLDIR}/${NAME}_${VERSION}.deb"
+make clean && \
+make build && \
+make manifest && \
+make-package "$DIR" "${POOLDIR}/${NAME}_${VERSION}.deb" && \
+printf "Done\n" >&2 || {
+	printf "Failed\n" >&2
+	exit 1
+}

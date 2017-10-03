@@ -270,21 +270,21 @@ void check_dir( char const * const path )
 		err( 1, "Can not open sourcedir %s: %s\n", path );
 	}
 
-	if ( faccessat( fd(SOURCE_DIR), "DEBIAN", X_OK | R_OK, AT_EACCESS ) == -1 )
+	if ( faccessat( fd(SOURCE_DIR), "debian", X_OK | R_OK, AT_EACCESS ) == -1 )
 	{
-		perror( "Unable to read or execute DEBIAN dir" );
+		perror( "Unable to read or execute debian dir" );
 		c_exit( 1 );
 	}
 
-	if ( faccessat( fd(SOURCE_DIR), "DEBIAN/control", R_OK, AT_EACCESS ) == -1 )
+	if ( faccessat( fd(SOURCE_DIR), "debian/control", R_OK, AT_EACCESS ) == -1 )
 	{
-		perror( "Unable to read DEBIAN/control" );
+		perror( "Unable to read debian/control" );
 		c_exit( 1 );
 	}
 
-	if ( faccessat( fd(SOURCE_DIR), "DEBIAN/owners", R_OK, AT_EACCESS ) == -1 )
+	if ( faccessat( fd(SOURCE_DIR), "owners", R_OK, AT_EACCESS ) == -1 )
 	{
-		perror( "Unable to read DEBIAN/owners" );
+		perror( "Unable to read owners" );
 		c_exit( 1 );
 	}
 
@@ -303,23 +303,23 @@ void load_rules()
 		c_exit( 1 );
 	}
 
-	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "DEBIAN/owners", O_RDONLY );
+	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "owners", O_RDONLY );
 
 	if ( fd(CURRENT_FILE) == -1 )
 	{
-		perror( "Unable to open DEBIAN/onwers" );
+		perror( "Unable to open debian/onwers" );
 		c_exit( 1 );
 	}
 
 	if ( lseek( fd(CURRENT_FILE), 0, SEEK_SET ) == -1 )
 	{
-		perror( "Unable to seek in DEBIAN/onwers" );
+		perror( "Unable to seek in debian/onwers" );
 		c_exit( 1 );
 	}
 
 	if ( flock( fd(CURRENT_FILE), LOCK_SH ) == -1 )
 	{
-		perror( "Unable to open DEBIAN/onwers" );
+		perror( "Unable to open debian/onwers" );
 		c_exit( 1 );
 	}
 
@@ -393,11 +393,11 @@ void process_control()
 		c_exit( 1 );
 	}
 
-	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "DEBIAN", O_DIRECTORY );
+	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "debian", O_DIRECTORY );
 
 	if ( fd(CURRENT_FILE) == -1 )
 	{
-		fprintf( stderr, "Unable to open DEBIAN folder: %s\n", strerror( errno ) );
+		fprintf( stderr, "Unable to open debian folder: %s\n", strerror( errno ) );
 		c_exit( 1 );
 	}
 
@@ -405,7 +405,7 @@ void process_control()
 
 	if ( dir == NULL )
 	{
-		fprintf( stderr, "Unable to open DEBIAN folder: %s\n", strerror( errno ) );
+		fprintf( stderr, "Unable to open debian folder: %s\n", strerror( errno ) );
 		c_exit( 1 );
 	}
 
@@ -419,7 +419,7 @@ void process_control()
 		{
 			if ( errno )
 			{
-				fprintf( stderr, "Error reading from DEBIAN folder: %s\n", strerror( errno ) );
+				fprintf( stderr, "Error reading from debian folder: %s\n", strerror( errno ) );
 			}
 			break;
 		}
@@ -487,10 +487,10 @@ void process_data()
 
 		file[offset] = '\0';
 
-		// Special case -- ignore DEBIAN
-		if ( strcmp( file, "./DEBIAN" ) == 0 || strncmp( file, "./DEBIAN/", 9 ) == 0 )
+		// Special case -- ignore debian
+		if ( strcmp( file, "./debian" ) == 0 || strncmp( file, "./debian/", 9 ) == 0 )
 		{
-			fprintf( stderr, "Found DEBIAN path in manifest file on line %lu: %s\n", line, file );
+			fprintf( stderr, "Found debian path in manifest file on line %lu: %s\n", line, file );
 
 			offset = 0;
 			++line;
@@ -575,9 +575,9 @@ int main( int argc, char ** argv )
 	check_dir( argv[1] );
 	load_rules();
 
-	// Put the DEBIAN path in a string
+	// Put the debian path in a string
 	debdir = calloc( strlen( argv[1] ) + 10, sizeof(char) );
-	sprintf( debdir, "%s/DEBIAN", argv[1] );
+	sprintf( debdir, "%s/debian", argv[1] );
 
 	// Create the output (.deb) file
 	create_file( argv[2], pipe(DEB_OUTPUT) );
