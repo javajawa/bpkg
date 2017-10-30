@@ -4,7 +4,7 @@
 .PHONY = clean build real-build
 
 MAKEFILE := $(lastword $(MAKEFILE_LIST))
-TARGETS=usr/bin/make-package usr/bin/ar-stream usr/bin/tar-stream usr/bin/bpkg-build
+TARGETS=$(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build)
 
 CFLAGS=-std=c11 -Wall -Wextra -Werror -pedantic -O2
 
