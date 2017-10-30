@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 .DEFAULT_GOAL = build
-.PHONY = clean build real-build
+.PHONY = clean build real-build bootstrap
 
 MAKEFILE := $(lastword $(MAKEFILE_LIST))
 TARGETS=$(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build)
@@ -31,6 +31,10 @@ real-build: $(TARGETS)
 
 manifest: build
 	find ./etc ./usr >$@
+
+bootstrap: build
+	PATH=./usr/bin:${PATH} bpkg-build .
+	echo "Run \`sudo dpkg -i /srv/www/bpkg/pool/bpkg_1.0-1.deb\` to install"
 
 clean:
 	rm -Rf *.o usr manifest
