@@ -12,6 +12,7 @@ check()
 check make-package
 check ar-stream
 check tar-stream
+check xz
 
 mkdir -p "${POOLDIR}" || {
 	echo "wat" >&2

@@ -4,7 +4,7 @@ Package: bpkg
 Section: devel
 Priority: optional
 Architecture: all
-Build-Depends: c-compiler | gcc, make
+Build-Depends: c-compiler | gcc, make, xz-utils
 Depends: libc6
 Essential: no
 Maintainer: Benedict Harcourt <ben.harcourt@harcourtprogramming.co.uk>
