@@ -132,6 +132,10 @@ void close_fd( struct pipe_id const offset )
 
 		fd(offset.id) = -1;
 	}
+	else
+	{
+		fprintf( stderr, "Re-closing closed file %d\n", offset.id );
+	}
 }
 
 void create_pipes( struct pipe_id const offset )
