@@ -13,6 +13,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/sendfile.h>
 
 #include "null-stream.h"
 
@@ -27,6 +28,8 @@ enum pipes
 	AR_INPUT_W,
 	AR_INPUT_R,
 	DEB_OUTPUT,
+	CONTROL_R,
+	CONTROL_W,
 	PIPES_MAX
 };
 
@@ -379,13 +382,16 @@ void match_rule( char const * const file, size_t const file_len, char const ** u
 	}
 }
 
-void process_control()
+size_t process_control()
 {
 	DIR * dir;
 	struct dirent * file;
-	char const * const user = "root";
+	struct stat stat;
+	size_t size = 0;
+
+	char const * const user  = "root";
 	char const * const group = "root";
-	char const * const mask = "00755";
+	char const * const mask  = "00755";
 
 	if ( fd(CURRENT_FILE) != -1 )
 	{
@@ -429,6 +435,15 @@ void process_control()
 			continue;
 		}
 
+		if ( fstatat( fd(CURRENT_FILE), file->d_name, &stat, AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT ) )
+		{
+			fprintf( stderr, "Error calling stat on debian/%s: %s\n", file->d_name, strerror( errno ) );
+		}
+		else
+		{
+			size += stat.st_size;
+		}
+
 		write_null_stream( fd(TARSTREAM_INPUT_W), file->d_name );
 		write_null_stream( fd(TARSTREAM_INPUT_W), user );
 		write_null_stream( fd(TARSTREAM_INPUT_W), group );
@@ -439,13 +454,18 @@ void process_control()
 
 	close_fd( pipe(CURRENT_FILE) );
 	close_fd( pipe(TARSTREAM_INPUT_W) );
+
+	return size;
 }
 
-void process_data()
+size_t process_data()
 {
 	char file[256];
 	char byte;
 	char const * user, * group, * mask;
+
+	struct stat fstat;
+	size_t size = 0;
 
 	size_t offset = 0;
 	size_t line   = 1;
@@ -508,6 +528,15 @@ void process_data()
 			continue;
 		}
 
+		if ( stat( file, &fstat ) )
+		{
+			fprintf( stderr, "Error calling stat on %s: %s\n", file, strerror( errno ) );
+		}
+		else
+		{
+			size += fstat.st_size;
+		}
+
 		match_rule( file, offset, &user, &group, &mask );
 
 		write_null_stream( fd(TARSTREAM_INPUT_W), file );
@@ -521,6 +550,8 @@ void process_data()
 
 	close_fd( pipe(CURRENT_FILE) );
 	close_fd( pipe(TARSTREAM_INPUT_W) );
+
+	return size;
 }
 
 void ar_header( char const * const filename )
@@ -550,16 +581,72 @@ void ar_footer()
 {
 	if ( fd(AR_INPUT_W) != -1 )
 	{
-		close( fd(AR_INPUT_W) );
+		close_fd( pipe(AR_INPUT_W) );
 	}
+}
+
+void write_control( char * out, size_t packed_size, size_t installed_size )
+{
+	ssize_t result;
+
+	size_t len = strlen( out );
+
+	char * cin  = "debian/control";
+	char * cout = calloc( len + 5, sizeof(char) );
+	char buffer[32];
+
+	if ( !cout )
+	{
+		err( 1, "Error allocating %lu bytes for data file name: %s\n", len+5 );
+	}
+
+	fd(CONTROL_R) = openat( fd(SOURCE_DIR), cin, O_RDONLY );
+
+	if ( fd(CONTROL_R) == -1 )
+	{
+		err( 1, "Error opening %s: %s\n", cin );
+	}
+
+	strcpy( cout, out );
+	strcpy( cout + len, ".dat" );
+
+	create_file( cout, pipe(CONTROL_W) );
+
+	while ( 1 )
+	{
+		result = sendfile( fd(CONTROL_W), fd(CONTROL_R), NULL, 4096 );
+
+		if ( result == -1 )
+		{
+			err( 1, "Error writing to %s: %s\n", cout );
+		}
+		if ( result == 0 )
+		{
+			break;
+		}
+	}
+
+	close_fd( pipe(CONTROL_R) );
+
+	len = snprintf( buffer, 30, "Size: %lu\n", packed_size );
+	write( fd(CONTROL_W), buffer, len );
+
+	len = snprintf( buffer, 30, "Installed-Size: %lu\n", installed_size );
+	write( fd(CONTROL_W), buffer, len );
+
+	close_fd( pipe(CONTROL_W) );
+
+	free( cout );
 }
 
 int main( int argc, char ** argv )
 {
 	char * arstream[]  = {  "ar-stream", NULL };
 	char * tarstream[] = { "tar-stream", NULL, NULL };
-	char * xz[] = { "xz", NULL };
+	char * const xz[]  = { "xz", NULL };
 	char * debdir;
+	size_t installed_size = 0;
+	struct stat package_stat;
 
 	if ( argc != 3 )
 	{
@@ -607,7 +694,9 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		process_control();
+		installed_size += process_control();
+
+	// End control section
 	ar_footer();
 
 	// Write out the data section
@@ -625,11 +714,21 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		process_data();
+		installed_size += process_data();
+
+	// End data sections
 	ar_footer();
 
 	ar_header( "" );
 	ar_footer();
+
+	while ( wait( NULL ) != -1 );
+
+	stat( argv[2], &package_stat );
+
+	write_control( argv[2], package_stat.st_size, installed_size );
+
+	close_descriptors();
 
 	free( debdir );
 
