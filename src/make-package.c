@@ -44,6 +44,8 @@ struct fd {
 static struct fd fds[ PIPES_MAX ];
 static struct sockaddr_un sock;
 static size_t children = 0;
+static char* tmppath = NULL;
+static char* tmpsock = NULL;
 
 struct owner_rule
 {
@@ -99,6 +101,26 @@ void c_exit( int const status )
 
 	free_rules();
 
+	if ( tmpsock )
+	{
+		if ( unlink( tmpsock ) == -1 )
+		{
+			fprintf( stderr, "Error unlinking %s: %s\n", tmpsock, strerror( errno ) );
+		}
+		free( tmpsock );
+		tmpsock = NULL;
+	}
+
+	if ( tmppath )
+	{
+		if ( rmdir( tmppath ) == -1 )
+		{
+			fprintf( stderr, "Error unlinking %s: %s\n", tmppath, strerror( errno ) );
+		}
+		free( tmppath );
+		tmppath = NULL;
+	}
+
 	exit( status );
 }
 
@@ -134,8 +156,8 @@ void create_pipes( struct pipe_id const offset )
 
 void create_fifo( struct pipe_id const sink )
 {
-	char * path;
-	char template[] = "/tmp/bpkd.XXXXXX";
+	char* path;
+	char template[] = "/tmp/bpkg.XXXXXX";
 	int result;
 
 	if ( fdp(sink) != - 1 )
@@ -152,21 +174,27 @@ void create_fifo( struct pipe_id const sink )
 		c_exit( 2 );
 	}
 
+	tmppath = calloc( 1, sizeof("/tmp/bpkg.XXXXXX") );
+	tmpsock = calloc( 108, sizeof(char) );
+
+	sprintf ( tmppath, path );
+	snprintf( tmpsock,       108, "%s/%s", tmppath, "sock" );
+	snprintf( sock.sun_path, 108, "%s/%s", tmppath, "sock" );
+
 	sock.sun_family = AF_UNIX;
-	snprintf( sock.sun_path, 108, "%s/%s", path, "sock" );
 
 	fdp(sink)  = socket( AF_UNIX, SOCK_STREAM, 0 );
 
 	if ( fdp(sink) == -1 )
 	{
-		err( 2, "make-package: Error opening named pipe %s: %s\n", path );
+		err( 2, "make-package: Error opening named pipe %s: %s\n", tmppath );
 	}
 
 	result = bind( fdp(sink), &sock, sizeof(sock) );
 
 	if ( result != 0 )
 	{
-		err( 2, "make-package: Error binding named pipe %s: %s\n", path );
+		err( 2, "make-package: Error binding named pipe %s: %s\n", tmppath );
 	}
 
 	result = listen( fdp(sink), 1 );
@@ -175,7 +203,6 @@ void create_fifo( struct pipe_id const sink )
 	{
 		fprintf( stderr, "make-package: Error switching named pipe to listen mode: %s\n", strerror( errno ) );
 	}
-
 }
 
 void create_file( char const * const path, struct pipe_id offset )
