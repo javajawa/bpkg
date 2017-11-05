@@ -17,28 +17,29 @@ CFLAGS=-std=c11 -Wall -Wextra -Werror -pedantic -O2
 	$(CC) -c $(CFLAGS) $< -o $@
 
 usr/bin/tar-stream: tar-stream.o null-stream.o
+	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 usr/bin/ar-stream: ar-stream.o null-stream.o
+	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 usr/bin/make-package: make-package.o null-stream.o
+	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 usr/bin/bpkg-build: src/bpkg-build
+	@mkdir -vp $(dir $@)
 	cp $< $@
 
-build:
-	mkdir -p usr/bin
-	$(MAKE) -f $(MAKEFILE) --no-print-directory real-build
 
-real-build: $(TARGETS)
+build: $(TARGETS)
 
 manifest: build
-	find ./etc ./usr >$@
+	find etc usr >$@
 
 bootstrap: build
-	rm -f /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb
+	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb
 	PATH=./usr/bin:${PATH} bpkg-build .
 	@printf "\nRun \`sudo apt install /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb\`\n"
 
