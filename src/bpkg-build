@@ -9,6 +9,7 @@ check()
 	exit 255
 }
 
+check make
 check make-package
 check ar-stream
 check tar-stream
