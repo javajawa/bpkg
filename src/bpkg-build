@@ -10,6 +10,7 @@ check()
 }
 
 check make
+check bpkg-checkbuilddeps
 check make-package
 check ar-stream
 check tar-stream
@@ -41,6 +42,7 @@ test -e "${POOLDIR}/${NAME}_${VERSION}.deb" && {
 	exit 0
 }
 
+bpkg-checkbuilddeps && \
 make clean && \
 make build && \
 make manifest && \

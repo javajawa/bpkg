@@ -5,7 +5,7 @@ Section: devel
 Priority: optional
 Architecture: all
 Build-Depends: c-compiler | gcc, make
-Depends: libc6, make, xz-utils
+Depends: libc6, make, xz-utils, libdpkg-perl, libdpkg-parse-perl
 Essential: no
 Maintainer: Benedict Harcourt <ben.harcourt@harcourtprogramming.co.uk>
 Description: Configuration files for fakeuser

@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Dpkg::Deps;
+use Dpkg::Control::Info;
+use DPKG::Parse::Status;
+
+my $controlfile = shift // 'debian/control';
+
+# Load in the control file
+my $control = Dpkg::Control::Info->new($controlfile);
+my $fields  = $control->get_source();
+
+# Get the list of Build Dependencies
+my $dependencies = deps_parse(
+	$fields->{'Build-Depends'} // '',
+	reduce_restrictions => 1, build_dep => 1
+);
+
+# Get the list of 'facts' -- the packages currently
+# installed on this system.
+my $facts  = Dpkg::Deps::KnownFacts->new();
+my $status = DPKG::Parse::Status->new;
+
+$status->parse();
+
+while (my $entry = $status->next_package)
+{
+	continue unless $entry->status eq 'install ok installed';
+
+	$facts->add_installed_package(
+		$entry->package,
+		$entry->version,
+		$entry->architecture,
+		$entry->multi_arch
+	);
+
+	if ( $entry->provides )
+	{
+		my $provides = deps_parse($entry->provides, reduce_arch => 1, union => 1);
+
+		foreach (grep { $_->isa('Dpkg::Deps::Simple') } $provides->get_deps())
+		{
+			$facts->add_provided_package(
+				$_->{package},
+				$_->{relation},
+				$_->{version},
+				$entry->package
+			);
+		}
+	}
+}
+
+# Get the dependencies that are not installed
+$dependencies->simplify_deps($facts);
+my @missing = $dependencies->get_deps();
+
+# Get the list of Build Conflicts
+my $conflicts = deps_parse(
+	$fields->{'Build-Conflicts'} // '',
+	reduce_restrictions => 1, build_dep => 1
+);
+
+# Print out any missing packages
+if (@missing)
+{
+	print "Missing Dependencies: ", join(' ', map { $_->output() } @missing), "\n";
+}
+
+# Get the packages that are conflicting to the build
+my @conflicts = ();
+foreach my $dep ($conflicts->get_deps())
+{
+	if ($dep->get_evaluation($facts))
+	{
+		push @conflicts, $dep;
+	}
+}
+
+# Print out any conflicting packages
+if (@conflicts)
+{
+	print "Build Conflicts: ", join(' ', map { $_->output() } @conflicts), "\n";
+}
+
+# Exit if there was an issue
+exit 1 if @missing || @conflicts;
