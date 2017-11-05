@@ -17,7 +17,7 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include "null-stream.h"
+#include "common/null-stream.h"
 #include "tar-stream.h"
 
 #define BUFFER_SIZE 4096

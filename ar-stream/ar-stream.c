@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "null-stream.h"
+#include "common/null-stream.h"
 
 int main( void ) // int argc, char** argv )
 {
