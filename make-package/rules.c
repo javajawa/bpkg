@@ -81,6 +81,11 @@ void load_rules()
 
 	fclose( file );
 	close_fd( pipe(CURRENT_FILE) );
+
+	if ( isatty( STDERR_FILENO ) )
+	{
+		fprintf( stderr, "Loaded %lu ownership rules\n", rules.count );
+	}
 }
 
 void match_rule( char const * const file, size_t const file_len, char const ** user, char const ** group, char const ** mask )

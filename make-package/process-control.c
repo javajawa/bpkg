@@ -87,5 +87,10 @@ size_t process_control()
 	close_fd( pipe(CURRENT_FILE) );
 	close_fd( pipe(TARSTREAM_INPUT_W) );
 
+	if ( isatty( STDERR_FILENO ) )
+	{
+		fprintf( stderr, "Finished processing control file\n" );
+	}
+
 	return size;
 }
