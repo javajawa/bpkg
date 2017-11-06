@@ -13,7 +13,9 @@
 #include "files.h"
 #include "error.h"
 #include "rules.h"
+
 #include "common/null-stream.h"
+#include "common/tar.h"
 
 size_t process_data()
 {
@@ -88,7 +90,7 @@ size_t process_data()
 			continue;
 		}
 
-		if ( offset > 231 ) // TODO: Get from tar.h
+		if ( offset > TAR_FILELEN )
 		{
 			fprintf( stderr, "Path too long on line %lu: %s\n", line, file );
 

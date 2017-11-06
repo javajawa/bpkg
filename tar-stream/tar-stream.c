@@ -18,7 +18,7 @@
 #include <grp.h>
 
 #include "common/null-stream.h"
-#include "tar-stream.h"
+#include "common/tar.h"
 
 #define BUFFER_SIZE 4096
 
@@ -201,7 +201,7 @@ uint8_t verify_input_data(
 
 	/* Checks for filename validity */
 
-	if ( file_len > TFILELEN )
+	if ( file_len > TAR_FILELEN )
 	{
 		fprintf( stderr, "RECORD ERROR: filename %s... is too long\n", file );
 
@@ -229,7 +229,7 @@ uint8_t verify_input_data(
 
 	/* Checks for username validity */
 
-	if ( user_len > TUSERLEN )
+	if ( user_len > TAR_USERLEN )
 	{
 		fprintf( stderr, "RECORD ERROR: user name %s... is too long\n", user );
 
@@ -243,14 +243,14 @@ uint8_t verify_input_data(
 
 	/* Checks for groupname validity */
 
-	if ( group_len > TUSERLEN )
+	if ( group_len > TAR_USERLEN )
 	{
 		fprintf( stderr, "RECORD ERROR: group name %s... is too long\n", group );
 
 		return 1;
 	}
 
-	if ( valid_name( group, TUSERLEN ) )
+	if ( valid_name( group, TAR_USERLEN ) )
 	{
 		fprintf( stderr, "RECORD ERROR: Group name %s is invalid\n", group );
 	}
@@ -425,23 +425,22 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 	//fprintf( stderr, "Create mode %05ho %s:%s %s\n", mode, user, group, file );
 
 	// Configure the headers
-	strncpy ( header->name,       file + sep, 100 );
-	snprintf( header->mode,    8, "%07o",    mode );
-	snprintf( header->uid,     8, "%07o",    uid );
-	snprintf( header->gid,     8, "%07o",    gid );
-	snprintf( header->size,   12, "%011lo",  size );
-	snprintf( header->mtime,  12, "%011lo",  stat.stat.st_mtim.tv_sec );
-	strncpy ( header->chksum,     TCHKSUM,   8 );
+	strncpy ( header->name,       file + sep,  100 );
+	snprintf( header->mode,    8, "%07o",      mode );
+	snprintf( header->uid,     8, "%07o",      uid );
+	snprintf( header->gid,     8, "%07o",      gid );
+	snprintf( header->size,   12, "%011lo",    size );
+	snprintf( header->mtime,  12, "%011lo",    stat.stat.st_mtim.tv_sec );
+	strncpy ( header->chksum,     "        ",  8 );
 	header->typeflag = file_type;
-	strncpy ( header->linkname,   stat.link, 100 );
-	strncpy ( header->magic,      TMAGIC,    TMAGLEN );
-	strncpy ( header->version,    TVERSION,  TVERSLEN );
-	strncpy ( header->uname,      user,      TUSERLEN );
-	strncpy ( header->gname,      group,     TUSERLEN );
-	memset  ( header->devmajor,   0,         16 + 131 + 36 );
-	strncpy ( header->prefix,     file,      sep ? sep - 1 : 0 );
-
-	snprintf( header->chksum,  8, "%07o",   header_checksum( header ) );
+	strncpy ( header->linkname,   stat.link,   100 );
+	strncpy ( header->magic,      TAR_MAGIC,   TAR_MAGLEN );
+	strncpy ( header->version,    TAR_VERSION, TAR_VERSLEN );
+	strncpy ( header->uname,      user,        TAR_USERLEN );
+	strncpy ( header->gname,      group,       TAR_USERLEN );
+	memset  ( header->devmajor,   0,           16 + 131 + 36 );
+	strncpy ( header->prefix,     file,        sep ? sep - 1 : 0 );
+	snprintf( header->chksum,  8, "%07o",      header_checksum( header ) );
 
 #ifdef HEADER_DEBUG
 	fputc_unlocked( '\n', stderr );
@@ -519,9 +518,9 @@ int main( int argc, char** argv )
 			return 3;
 		}
 
-		user_len  = read_null_stream( STDIN_FILENO, user,  TUSERLEN + 2 );
-		group_len = read_null_stream( STDIN_FILENO, group, TUSERLEN + 2 );
-		mask_len  = read_null_stream( STDIN_FILENO, mask, 8 );
+		user_len  = read_null_stream( STDIN_FILENO, user,  TAR_USERLEN + 2 );
+		group_len = read_null_stream( STDIN_FILENO, group, TAR_USERLEN + 2 );
+		mask_len  = read_null_stream( STDIN_FILENO, mask,  8 );
 
 		if ( verify_input_data( file, file_len, user, user_len, group, group_len, mask, mask_len, &mode ) )
 		{

@@ -3,11 +3,13 @@
 
 #include <stddef.h>
 
+#include "common/tar.h"
+
 struct owner_rule
 {
 	size_t path_len;
-	char   user[32]; // TODO: Pull from tar.h ?
-	char   group[32];
+	char   user [TAR_USERLEN];
+	char   group[TAR_USERLEN];
 	char   mask[8];
 	char*  path;
 };

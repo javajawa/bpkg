@@ -7,8 +7,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include "error.h"
 #include "common/null-stream.h"
+
+#include "error.h"
 #include "files.h"
 #include "pipe-fork-exec.h"
 #include "rules.h"
@@ -16,6 +17,7 @@
 #include "process-control.h"
 #include "process-data.h"
 #include "write-control.h"
+
 
 struct fd fds[ PIPES_MAX ];
 
