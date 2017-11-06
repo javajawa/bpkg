@@ -48,6 +48,7 @@ manifest: build
 
 bootstrap: build
 	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb
+	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb.dat
 	PATH=./usr/bin:${PATH} bpkg-build .
 	@printf "\nRun \`sudo apt install /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb\`\n"
 
