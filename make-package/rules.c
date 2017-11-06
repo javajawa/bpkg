@@ -28,19 +28,24 @@ void load_rules()
 
 	if ( fd(CURRENT_FILE) == -1 )
 	{
-		perror( "Unable to open debian/onwers" );
+		if ( errno == ENOENT )
+		{
+			return;
+		}
+
+		perror( "Unable to open debian/owners" );
 		c_exit( 1 );
 	}
 
 	if ( lseek( fd(CURRENT_FILE), 0, SEEK_SET ) == -1 )
 	{
-		perror( "Unable to seek in debian/onwers" );
+		perror( "Unable to seek in debian/owners" );
 		c_exit( 1 );
 	}
 
 	if ( flock( fd(CURRENT_FILE), LOCK_SH ) == -1 )
 	{
-		perror( "Unable to open debian/onwers" );
+		perror( "Unable to open debian/owners" );
 		c_exit( 1 );
 	}
 

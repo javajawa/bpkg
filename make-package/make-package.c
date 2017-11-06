@@ -59,12 +59,6 @@ int main( int argc, char ** argv )
 		c_exit( 1 );
 	}
 
-	if ( faccessat( fd(SOURCE_DIR), "owners", R_OK, AT_EACCESS ) == -1 )
-	{
-		perror( "Unable to read owners" );
-		c_exit( 1 );
-	}
-
 	if ( faccessat( fd(SOURCE_DIR), "manifest", R_OK, AT_EACCESS ) == -1 )
 	{
 		perror( "Unable to read manifest" );
