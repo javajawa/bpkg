@@ -1,12 +1,14 @@
 #!/bin/sh
 
-. /etc/bpkg.conf
-
 check()
 {
 	command -v "$1" >/dev/null 2>/dev/null && return 0
 	printf "Command not found: %s\n" "$1" >&2
 	exit 255
+}
+
+test -r /etc/bpkg.conf && {
+	. /etc/bpkg.conf
 }
 
 check make
@@ -17,7 +19,7 @@ check tar-stream
 check xz
 
 mkdir -p "${POOLDIR}" || {
-	echo "wat" >&2
+	printf "Unable to make pool directory %s\n" "$POOLDIR" >&2
 	exit 1
 }
 
