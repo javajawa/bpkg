@@ -33,19 +33,19 @@ void load_rules()
 			return;
 		}
 
-		perror( "Unable to open debian/owners" );
+		perror( "Unable to open owners" );
 		c_exit( 1 );
 	}
 
 	if ( lseek( fd(CURRENT_FILE), 0, SEEK_SET ) == -1 )
 	{
-		perror( "Unable to seek in debian/owners" );
+		perror( "Unable to seek in owners" );
 		c_exit( 1 );
 	}
 
 	if ( flock( fd(CURRENT_FILE), LOCK_SH ) == -1 )
 	{
-		perror( "Unable to open debian/owners" );
+		perror( "Unable to open owners" );
 		c_exit( 1 );
 	}
 
