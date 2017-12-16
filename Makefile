@@ -3,8 +3,7 @@
 .DEFAULT_GOAL = build
 .PHONY = clean build bootstrap
 
-MAKEFILE := $(lastword $(MAKEFILE_LIST))
-TARGETS=$(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
+TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
 
 PACKAGE := $(shell grep '^Package:' 'debian/control')
 PACKAGE := $(subst Package: ,,$(PACKAGE))
