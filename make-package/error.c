@@ -23,11 +23,11 @@ void c_exit( int const status )
 		{
 			fprintf( stderr, "Error unlinking %s: %s\n", tmpsock, strerror( errno ) );
 		}
-	}
 
-	if ( rmdir( tmppath ) == -1 )
-	{
-		fprintf( stderr, "Error unlinking %s: %s\n", tmppath, strerror( errno ) );
+		if ( rmdir( tmppath ) == -1 )
+		{
+			fprintf( stderr, "Error unlinking %s: %s\n", tmppath, strerror( errno ) );
+		}
 	}
 
 	exit( status );
