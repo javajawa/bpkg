@@ -21,7 +21,7 @@ void write_control( char * out, struct package_data stats )
 
 	char * cin  = "debian/control";
 	char * cout = calloc( len + 5, sizeof(char) );
-	char buffer[32];
+	char buffer[256];
 
 	if ( !cout )
 	{
@@ -60,6 +60,12 @@ void write_control( char * out, struct package_data stats )
 	write( fd(CONTROL_W), buffer, len );
 
 	len = snprintf( buffer, 30, "Installed-Size: %lu\n", stats.installed_size );
+	write( fd(CONTROL_W), buffer, len );
+
+	len = snprintf( buffer, 254, CHK1_NAME ": %s\n", stats.chk1 );
+	write( fd(CONTROL_W), buffer, len );
+
+	len = snprintf( buffer, 254, CHK2_NAME ": %s\n", stats.chk2 );
 	write( fd(CONTROL_W), buffer, len );
 
 	close_fd( pipe(CONTROL_W) );
