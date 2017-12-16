@@ -20,6 +20,7 @@
 #include "process-data.h"
 #include "write-control.h"
 
+void process_output( char *, struct package_data* );
 
 struct fd fds[ PIPES_MAX ];
 
@@ -31,68 +32,6 @@ struct package_data stats = {
 	"", // First checksum
 	""  // Second checksum
 };
-
-// TODO: Move this to its own file.
-void process_output( char * output )
-{
-	char * const chk1cmd[] = { CHK1_COMMAND, NULL };
-	char * const chk2cmd[] = { CHK2_COMMAND, NULL };
-
-	char buffer[4096];
-
-	ssize_t b_read;
-
-	if ( fd(CURRENT_FILE) != -1 )
-	{
-		// TODO: Error handling
-	}
-
-	fd(CURRENT_FILE) = open( output, O_RDONLY );
-
-	if ( fd(CURRENT_FILE) == -1 )
-	{
-		// TODO: Error handling
-	}
-
-	// TODO: fork to sha256sum and sha512sum
-	create_pipes( pipe(CHK1_INPUT_R) );
-	create_pipes( pipe(CHK1_OUTPUT_R) );
-	create_pipes( pipe(CHK2_INPUT_R) );
-	create_pipes( pipe(CHK2_OUTPUT_R) );
-
-	pipe_fork_exec( chk1cmd, pipe(CHK1_INPUT_R), pipe(CHK1_OUTPUT_W) );
-	pipe_fork_exec( chk2cmd, pipe(CHK2_INPUT_R), pipe(CHK2_OUTPUT_W) );
-
-	while ( 1 )
-	{
-		b_read = read( fd(CURRENT_FILE), buffer, 4096 );
-
-		if ( b_read == 0 )
-		{
-			break;
-		}
-
-		if ( b_read == -1 )
-		{
-			perror( "Error reading ar-stream output file" );
-			c_exit( 1 );
-		}
-
-		stats.packed_size += b_read;
-
-		write( fd(CHK1_INPUT_W), buffer, b_read );
-		write( fd(CHK2_INPUT_W), buffer, b_read );
-	}
-
-	close_fd( pipe(CHK1_INPUT_W) );
-	close_fd( pipe(CHK2_INPUT_W) );
-
-	read( fd(CHK1_OUTPUT_R), stats.chk1, CHK1_SIZE );
-	read( fd(CHK2_OUTPUT_R), stats.chk2, CHK2_SIZE );
-
-	close_fd( pipe(CHK1_OUTPUT_R) );
-	close_fd( pipe(CHK2_OUTPUT_R) );
-}
 
 int main( int argc, char ** argv )
 {
@@ -218,7 +157,7 @@ int main( int argc, char ** argv )
 	while ( wait( NULL ) != -1 );
 
 	// Get the package size and checksusm
-	process_output( argv[2] );
+	process_output( argv[2], &stats );
 
 	// Write out a modified version of the debian/control file
 	// This contains the information that goes in the Packages/index
