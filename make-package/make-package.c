@@ -101,17 +101,23 @@ int main( int argc, char ** argv )
 	char * const xz[]  = { "xz", NULL };
 	char * debdir;
 
+	// Parameter check
 	if ( argc != 3 )
 	{
 		fprintf( stderr, "Usage: %s [directory] [target.deb]\n", argv[0] );
 		return 1;
 	}
 
+	// Initialise the list of file descriptors to all be -1,
+	// indicating that that file has not been opened
 	for ( size_t i = 0; i < PIPES_MAX; ++i )
 	{
 		fd(i) = -1;
 	}
 
+	// Open a DIR file descriptor to the source directory,
+	// so that all future file operations can use f*at() and avoid
+	// handling string concatenation.
 	fd(SOURCE_DIR) = open( argv[1], O_DIRECTORY | O_RDONLY );
 
 	if ( fd(SOURCE_DIR) == -1 )
@@ -119,6 +125,10 @@ int main( int argc, char ** argv )
 		err( 1, "Can not open sourcedir %s: %s\n", argv[1] );
 	}
 
+	// Check that the following files exists, and are readable:
+	//
+	//  ./debian/control
+	//  ./manifest
 	if ( faccessat( fd(SOURCE_DIR), "debian", X_OK | R_OK, AT_EACCESS ) == -1 )
 	{
 		// TODO: All of these should call err.
@@ -138,15 +148,18 @@ int main( int argc, char ** argv )
 		c_exit( 1 );
 	}
 
+	// Load of of the ownership and permission rules from the
+	// debian/owners into memory
 	load_rules();
 
-	// Put the debian path in a string
+	// Put the debian path in a string.
 	debdir = calloc( strlen( argv[1] ) + 10, sizeof(char) );
 	sprintf( debdir, "%s/debian", argv[1] );
 
 	// Create the output (.deb) file
 	create_file( argv[2], pipe(DEB_OUTPUT) );
-	// Create a named pipe for the 'ar' program
+
+	// Create a named pipe for sending files to ar-stream
 	create_fifo( pipe(AR_INPUT_R) );
 
 	// Spawn the ar(1)-like archiver
@@ -197,18 +210,27 @@ int main( int argc, char ** argv )
 	// End data sections
 	ar_footer();
 
+	// Send an empty file name to tell ar_stream we are done.
 	ar_header( "" );
 	ar_footer();
 
+	// Wait for all sub processes to close
 	while ( wait( NULL ) != -1 );
 
+	// Get the package size and checksusm
 	process_output( argv[2] );
 
+	// Write out a modified version of the debian/control file
+	// This contains the information that goes in the Packages/index
+	// file of the repository, and adds size and checksum information
+	// which has been gathered in to the `stats' struct.
 	write_control( argv[2], stats );
 
 	close_descriptors();
 
+	// Free the allocated memory for getting the debian dir
 	free( debdir );
 
+	// Tidy up and exit cleanly
 	c_exit( 0 );
 }
