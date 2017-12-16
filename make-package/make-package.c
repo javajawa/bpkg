@@ -1,3 +1,4 @@
+// vim: nospell
 #define _GNU_SOURCE
 
 #include <fcntl.h>
@@ -21,14 +22,21 @@
 
 struct fd fds[ PIPES_MAX ];
 
+// Information about the resulting package which is used
+// to populate the package index.
+struct package_data stats = {
+	0,  // Size of files in package
+	0,  // Size of the packaged archive
+	"", // First checksum
+	""  // Second checksum
+};
+
 int main( int argc, char ** argv )
 {
 	char * arstream[]  = {  "ar-stream", NULL };
 	char * tarstream[] = { "tar-stream", NULL, NULL };
 	char * const xz[]  = { "xz", NULL };
 	char * debdir;
-	size_t installed_size = 0;
-	struct stat package_stat;
 
 	if ( argc != 3 )
 	{
@@ -101,7 +109,7 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		installed_size += process_control();
+		stats.installed_size += process_control();
 
 	// End control section
 	ar_footer();
@@ -121,7 +129,7 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		installed_size += process_data();
+		stats.installed_size += process_data();
 
 	// End data sections
 	ar_footer();
@@ -131,9 +139,8 @@ int main( int argc, char ** argv )
 
 	while ( wait( NULL ) != -1 );
 
-	stat( argv[2], &package_stat );
 
-	write_control( argv[2], package_stat.st_size, installed_size );
+	write_control( argv[2], stats );
 
 	close_descriptors();
 

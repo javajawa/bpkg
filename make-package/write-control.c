@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include"write-control.h"
+#include "write-control.h"
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -13,7 +13,7 @@
 #include "files.h"
 #include "error.h"
 
-void write_control( char * out, size_t packed_size, size_t installed_size )
+void write_control( char * out, struct package_data stats )
 {
 	ssize_t result;
 
@@ -56,10 +56,10 @@ void write_control( char * out, size_t packed_size, size_t installed_size )
 
 	close_fd( pipe(CONTROL_R) );
 
-	len = snprintf( buffer, 30, "Size: %lu\n", packed_size );
+	len = snprintf( buffer, 30, "Size: %lu\n", stats.packed_size );
 	write( fd(CONTROL_W), buffer, len );
 
-	len = snprintf( buffer, 30, "Installed-Size: %lu\n", installed_size );
+	len = snprintf( buffer, 30, "Installed-Size: %lu\n", stats.installed_size );
 	write( fd(CONTROL_W), buffer, len );
 
 	close_fd( pipe(CONTROL_W) );
