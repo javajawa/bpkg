@@ -11,20 +11,20 @@
 
 int main( void ) // int argc, char** argv )
 {
-	int fd;
+	int input_socket;
 	char buffer[4096];
-	ssize_t r;
+	ssize_t bytes_read;
 	ssize_t size = 0;
 	off_t seek;
 
 	struct sockaddr sock;
 	socklen_t sock_size = sizeof(sock);
 
-	r = getsockname( STDIN_FILENO, &sock, &sock_size );
+	bytes_read = getsockname( STDIN_FILENO, &sock, &sock_size );
 
 	char const * const zero = "0               ";
 
-	if ( r == -1 )
+	if ( bytes_read == -1 )
 	{
 		fprintf( stderr, "ar-stream: Error getting socket info: %s\n", strerror( errno ) );
 		return 2;
@@ -34,9 +34,9 @@ int main( void ) // int argc, char** argv )
 
 	while ( 1 )
 	{
-		fd = accept( STDIN_FILENO, &sock, &sock_size );
+		input_socket = accept( STDIN_FILENO, &sock, &sock_size );
 
-		if ( fd == -1 )
+		if ( input_socket == -1 )
 		{
 			fprintf( stderr, "ar-stream: Accept resturned %s\n", strerror( errno ) );
 			return 2;
@@ -45,22 +45,22 @@ int main( void ) // int argc, char** argv )
 		size = 0;
 		memset( buffer, ' ', 17 );
 
-		write( fd, "k", 1 );
-		r = read_null_stream( fd, buffer, 16 );
+		write( input_socket, "k", 1 );
+		bytes_read = read_null_stream( input_socket, buffer, 16 );
 
-		if ( r == 0 )
+		if ( bytes_read == 0 )
 		{
 			close( STDIN_FILENO );
 			return 0;
 		}
 
-		if ( r < 0 )
+		if ( bytes_read < 0 )
 		{
-			fprintf( stderr, "ar-stream: Error reading from input: %s\n", strerror( -r ) );
+			fprintf( stderr, "ar-stream: Error reading from input: %s\n", strerror( -bytes_read ) );
 			return 1;
 		}
 
-		buffer[r] = ' ';
+		buffer[bytes_read] = ' ';
 		write( STDOUT_FILENO, buffer, 16 );
 		write( STDOUT_FILENO, zero, 12 ); // Timestamp
 		write( STDOUT_FILENO, zero, 6 );  // Owner
@@ -78,59 +78,59 @@ int main( void ) // int argc, char** argv )
 
 		while ( 1 )
 		{
-			r = read( fd, buffer, 4096 );
+			bytes_read = read( input_socket, buffer, 4096 );
 
-			if ( r == 0 )
+			if ( bytes_read == 0 )
 			{
-				close( fd );
+				close( input_socket );
 				break;
 			}
-			if ( r == -1 )
+			if ( bytes_read == -1 )
 			{
 				fprintf( stderr, "ar-stream: Error reading from input: %s", strerror(errno ) );
-				close( fd );
+				close( input_socket );
 				break;
 			}
 
-			size += r;
-			write( STDOUT_FILENO, buffer, r );
+			size += bytes_read;
+			write( STDOUT_FILENO, buffer, bytes_read );
 		}
 
 		if ( seek )
 		{
-			r = lseek( STDOUT_FILENO, seek, SEEK_SET );
+			bytes_read = lseek( STDOUT_FILENO, seek, SEEK_SET );
 
-			if ( r < 0 )
+			if ( bytes_read < 0 )
 			{
 				fprintf( stderr, "Error seeking back to %lu to write size: %s\n", seek, strerror( errno ) );
 				continue;
 			}
 
-// TODO: replace 10 with a #define
-			r = sprintf( buffer, "%-10lu", size );
+			// TODO: replace 10 with a #define
+			bytes_read = sprintf( buffer, "%-10lu", size );
 
-			if ( r < 0 )
+			if ( bytes_read < 0 )
 			{
 				fprintf( stderr, "Error converting size to decimal: %s\n", strerror( errno ) );
 				continue;
 			}
 
-			if ( r > 10 )
+			if ( bytes_read > 10 )
 			{
 				fprintf( stderr, "Filed to write size: Size %lu exceeds 12 decimal digits\n", size );
 				continue;
 			}
 
-			r = write( STDOUT_FILENO, buffer, r );
+			bytes_read = write( STDOUT_FILENO, buffer, bytes_read );
 
-			if ( r < 0 )
+			if ( bytes_read < 0 )
 			{
 				// TODO: error
 			}
 
-			r = lseek( STDOUT_FILENO, 0, SEEK_END );
+			bytes_read = lseek( STDOUT_FILENO, 0, SEEK_END );
 
-			if ( r == -1 )
+			if ( bytes_read == -1 )
 			{
 				fprintf( stderr, "Unable to see back to the end of the output file: %s\n", strerror( errno ) );
 				return 4;
