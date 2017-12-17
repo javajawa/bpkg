@@ -27,24 +27,21 @@ size_t process_control()
 
 	if ( fd(CURRENT_FILE) != -1 )
 	{
-		fprintf( stderr, "Current directory already open when opening manifest\n" );
-		c_exit( 1 );
+		errs( 1, "Current directory already open when opening manifest" );
 	}
 
 	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "debian", O_DIRECTORY );
 
 	if ( fd(CURRENT_FILE) == -1 )
 	{
-		fprintf( stderr, "Unable to open debian folder: %s\n", strerror( errno ) );
-		c_exit( 1 );
+		err( 1, "Unable to open debian folder descriptor" );
 	}
 
 	dir = fdopendir( fd(CURRENT_FILE) );
 
 	if ( dir == NULL )
 	{
-		fprintf( stderr, "Unable to open debian folder: %s\n", strerror( errno ) );
-		c_exit( 1 );
+		err( 1, "Unable to open debian folder file list" );
 	}
 
 	while ( 1 )
@@ -57,7 +54,7 @@ size_t process_control()
 		{
 			if ( errno )
 			{
-				fprintf( stderr, "Error reading from debian folder: %s\n", strerror( errno ) );
+				err( 1, "Error reading from debian folder" );
 			}
 			break;
 		}
@@ -69,7 +66,7 @@ size_t process_control()
 
 		if ( fstatat( fd(CURRENT_FILE), file->d_name, &stat, AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT ) )
 		{
-			fprintf( stderr, "Error calling stat on debian/%s: %s\n", file->d_name, strerror( errno ) );
+			errf( 1, "Error calling stat on debian/%s", file->d_name );
 		}
 		else
 		{

@@ -40,7 +40,7 @@ void close_fd( struct pipe_id const offset )
 	}
 	else
 	{
-		fprintf( stderr, "Re-closing closed file %d\n", offset.id );
+		errfs( 0, "Re-closed file %d\n", offset.id );
 	}
 }
 
@@ -50,14 +50,13 @@ void create_pipes( struct pipe_id const offset )
 
 	if ( fdp(offset) != -1 )
 	{
-		fprintf( stderr, "make-package: Attempting to reopen a file descriptor\n" );
+		errf( 0, "Attempting to reopen file descriptor %d", fdp(offset) );
 		return;
 	}
 
 	if ( (pipe)( pipes ) == -1 )
 	{
-		perror( "Error creating pipes" );
-		c_exit( 2 );
+		errf( 1, "Error creating pipe for descriptor %d", fdp(offset) );
 	}
 
 	fdp(offset) = pipes[0];
@@ -71,16 +70,14 @@ void create_fifo( struct pipe_id const sink )
 
 	if ( fdp(sink) != - 1 )
 	{
-		fprintf( stderr, "make-package: Trying to re-open socket\n" );
-		c_exit( 2 );
+		errs( 1, "Trying to re-open socket" );
 	}
 
 	path = mkdtemp( tmppath );
 
 	if ( path == NULL )
 	{
-		fprintf( stderr, "make-package: Failed to generate temp path: %s\n", strerror( errno ) );
-		c_exit( 2 );
+		err( 1, "Failed to generate temp path" );
 	}
 
 	snprintf( tmpsock,       23, "%s/%s", tmppath, "sock" );
@@ -92,21 +89,21 @@ void create_fifo( struct pipe_id const sink )
 
 	if ( fdp(sink) == -1 )
 	{
-		err( 2, "make-package: Error opening named pipe %s: %s\n", tmppath );
+		errf( 1, "Error opening named pipe %s", tmppath );
 	}
 
 	result = bind( fdp(sink), &sock, sizeof(sock) );
 
 	if ( result != 0 )
 	{
-		err( 2, "make-package: Error binding named pipe %s: %s\n", tmppath );
+		errf( 1, "Error binding named pipe %s", tmppath );
 	}
 
 	result = listen( fdp(sink), 1 );
 
 	if ( result != 0 )
 	{
-		fprintf( stderr, "make-package: Error switching named pipe to listen mode: %s\n", strerror( errno ) );
+		err( 1, "Error switching named pipe to listen mode" );
 	}
 }
 
@@ -122,16 +119,13 @@ void create_file( char const * const path, struct pipe_id offset )
 	switch ( errno )
 	{
 		case EEXIST:
-			fprintf( stderr, "%s already exists\n", path );
+			errfs( 1, "%s already exists", path );
 			break;
 
 		case EACCES:
-			fprintf( stderr, "%s not writable\n", path );
+			errfs( 1, "%s not writable", path );
 			break;
-
-		default:
-			err( 1, "Unhandled error opening %s: %s\n", path );
 	}
 
-	c_exit( 1 );
+	errf( 1, "Unhandled error opening %s", path );
 }

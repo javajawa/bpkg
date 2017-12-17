@@ -25,14 +25,14 @@ void write_control( char * out, struct package_data stats )
 
 	if ( !cout )
 	{
-		err( 1, "Error allocating %lu bytes for data file name: %s\n", len+5 );
+		errf( 1, "Error allocating %lu bytes for data file name", len+5 );
 	}
 
 	fd(CONTROL_R) = openat( fd(SOURCE_DIR), cin, O_RDONLY );
 
 	if ( fd(CONTROL_R) == -1 )
 	{
-		err( 1, "Error opening %s: %s\n", cin );
+		errf( 1, "Error opening %s", cin );
 	}
 
 	strcpy( cout, out );
@@ -46,7 +46,7 @@ void write_control( char * out, struct package_data stats )
 
 		if ( result == -1 )
 		{
-			err( 1, "Error writing to %s: %s\n", cout );
+			errf( 1, "Error writing to %s", cout );
 		}
 		if ( result == 0 )
 		{

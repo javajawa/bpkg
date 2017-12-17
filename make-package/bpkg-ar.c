@@ -19,14 +19,14 @@ void ar_header( char const * const filename )
 
 	if ( result == -1 )
 	{
-		err( 2, "make-package: Unable to connect to ar input fifo %s: %s\n", sock.sun_path );
+		errf( 2, "Unable to connect to ar input fifo %s", sock.sun_path );
 	}
 
 	result = read( fd(AR_INPUT_W), &ok, 1 );
 
 	if ( result != 1 )
 	{
-		err( 2, "make-package: Unable to connect to ar input fifo %s: %s\n", sock.sun_path );
+		errf( 2, "Unable to connect to ar input fifo %s", sock.sun_path );
 	}
 
 	write_null_stream( fd(AR_INPUT_W), filename );

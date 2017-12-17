@@ -14,7 +14,7 @@ pid_t pipe_fork_exec( char * const * argv, struct pipe_id const in, struct pipe_
 	{
 		if ( pid == -1 )
 		{
-			perror( argv[0] );
+			errf( 1, "Unable to fork (attempt to fork-exec to %s)", argv[0] );
 		}
 
 		close_fd( in  );
@@ -31,11 +31,15 @@ pid_t pipe_fork_exec( char * const * argv, struct pipe_id const in, struct pipe_
 		switch ( errno )
 		{
 			case EBADF:
-				fprintf( stderr, "Unable to open %d for read, not a valid fd for %s\n", fdp(in), argv[0] );
+				errfs( 0, "Unable to open %d for read, not a valid fd for %s", fdp(in), argv[0] );
 				break;
 
 			case EMFILE:
-				fprintf( stderr, "File descriptor limit exceeding forking to %s\n", argv[0] );
+				errfs( 0, "File descriptor limit exceeding forking to %s", argv[0] );
+				break;
+
+			default:
+				errf( 0, "Error dup-ing input file descriptor for %s", argv[0] );
 		}
 
 		return 0;
@@ -46,11 +50,15 @@ pid_t pipe_fork_exec( char * const * argv, struct pipe_id const in, struct pipe_
 		switch ( errno )
 		{
 			case EBADF:
-				fprintf( stderr, "Unable to open %d for write, not a valid fd for %s\n", fdp(out), argv[0] );
+				errfs( 0, "Unable to open %d for read, not a valid fd for %s", fdp(in), argv[0] );
 				break;
 
 			case EMFILE:
-				fprintf( stderr, "File descriptor limit exceeding forking to %s\n", argv[0] );
+				errfs( 0, "File descriptor limit exceeding forking to %s", argv[0] );
+				break;
+
+			default:
+				errf( 0, "Error dup-ing input file descriptor for %s", argv[0] );
 		}
 
 		return 0;
@@ -60,7 +68,7 @@ pid_t pipe_fork_exec( char * const * argv, struct pipe_id const in, struct pipe_
 
 	execvp( argv[0], argv );
 
-	err( 1, "Error calling execvp to %s: %s\n", argv[0] );
+	errf( 1, "Error calling execvp to %s", argv[0] );
 
 	return 0;
 }

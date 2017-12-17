@@ -20,8 +20,7 @@ void load_rules()
 {
 	if ( fd(CURRENT_FILE) != -1 )
 	{
-		fprintf( stderr, "Already reading a file when calling load_rules\n" );
-		c_exit( 1 );
+		errs( 1, "Already reading a file when calling load_rules" );
 	}
 
 	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "owners", O_RDONLY );
@@ -33,22 +32,18 @@ void load_rules()
 			return;
 		}
 
-		perror( "Unable to open owners" );
-		c_exit( 1 );
+		err( 1, "Unable to open owners file" );
 	}
 
 	if ( lseek( fd(CURRENT_FILE), 0, SEEK_SET ) == -1 )
 	{
-		perror( "Unable to seek in owners" );
-		c_exit( 1 );
+		err( 1, "Unable to seek in owners" );
 	}
 
 	if ( flock( fd(CURRENT_FILE), LOCK_SH ) == -1 )
 	{
-		perror( "Unable to open owners" );
-		c_exit( 1 );
+		err( 1, "Unable to open owners" );
 	}
-
 
 	FILE* file = fdopen( fd(CURRENT_FILE), "r" );
 

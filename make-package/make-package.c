@@ -43,8 +43,7 @@ int main( int argc, char ** argv )
 	// Parameter check
 	if ( argc != 3 )
 	{
-		fprintf( stderr, "Usage: %s [directory] [target.deb]\n", argv[0] );
-		return 1;
+		errfs( 1, "Usage: %s [directory] [target.deb]", argv[0] );
 	}
 
 	// Initialise the list of file descriptors to all be -1,
@@ -61,7 +60,7 @@ int main( int argc, char ** argv )
 
 	if ( fd(SOURCE_DIR) == -1 )
 	{
-		err( 1, "Can not open sourcedir %s: %s\n", argv[1] );
+		errf( 1, "Can not open sourcedir %s", argv[1] );
 	}
 
 	// Check that the following files exists, and are readable:
@@ -70,21 +69,17 @@ int main( int argc, char ** argv )
 	//  ./manifest
 	if ( faccessat( fd(SOURCE_DIR), "debian", X_OK | R_OK, AT_EACCESS ) == -1 )
 	{
-		// TODO: All of these should call err.
-		perror( "Unable to read or execute debian dir" );
-		c_exit( 1 );
+		err( 1, "Unable to read or execute debian dir" );
 	}
 
 	if ( faccessat( fd(SOURCE_DIR), "debian/control", R_OK, AT_EACCESS ) == -1 )
 	{
-		perror( "Unable to read debian/control" );
-		c_exit( 1 );
+		err( 1, "Unable to read debian/control" );
 	}
 
 	if ( faccessat( fd(SOURCE_DIR), "manifest", R_OK, AT_EACCESS ) == -1 )
 	{
-		perror( "Unable to read manifest" );
-		c_exit( 1 );
+		err( 1, "Unable to read manifest" );
 	}
 
 	// Load of of the ownership and permission rules from the
@@ -93,6 +88,10 @@ int main( int argc, char ** argv )
 
 	// Put the debian path in a string.
 	debdir = calloc( strlen( argv[1] ) + 10, sizeof(char) );
+	if ( debdir == NULL )
+	{
+		err( 1, "Unable to allocate memory" );
+	}
 	sprintf( debdir, "%s/debian", argv[1] );
 
 	// Create the output (.deb) file

@@ -34,23 +34,21 @@ size_t process_data()
 
 	if ( fd(CURRENT_FILE) != -1 )
 	{
-		fprintf( stderr, "Current directory already open when opening manifest\n" );
-		c_exit( 1 );
+		errs( 1, "Current directory already open when opening manifest" );
 	}
 
 	fd(CURRENT_FILE) = openat( fd(SOURCE_DIR), "manifest", O_RDONLY );
 
 	if ( fd(CURRENT_FILE) == -1 )
 	{
-		fprintf( stderr, "Unable to open manifest file: %s\n", strerror( errno ) );
-		c_exit( 1 );
+		err( 1, "Unable to open manifest file" );
 	}
 
 	result = fstat( fd(CURRENT_FILE), &statf );
 
 	if ( result == -1 )
 	{
-		fprintf( stderr, "Unable to stat manifest file: %s\n", strerror( errno ) );
+		err( 1, "Unable to stat manifest file" );
 	}
 
 	total = statf.st_size;
@@ -64,7 +62,7 @@ size_t process_data()
 		{
 			if ( result < 0 )
 			{
-				fprintf( stderr, "Error reading from manifest file at line %lu: %s\n", line, strerror( errno ) );
+				errf( 0, "Error reading from manifest file at line %lu", line );
 			}
 			break;
 		}
@@ -82,7 +80,7 @@ size_t process_data()
 		// Special case -- ignore debian
 		if ( strcmp( file, "./debian" ) == 0 || strncmp( file, "./debian/", 9 ) == 0 )
 		{
-			fprintf( stderr, "Found debian path in manifest file on line %lu: %s\n", line, file );
+			errfs( 0, "Found debian path in manifest file on line %lu: %s", line, file );
 
 			offset = 0;
 			++line;
@@ -92,7 +90,7 @@ size_t process_data()
 
 		if ( offset > TAR_FILELEN )
 		{
-			fprintf( stderr, "Path too long on line %lu: %s\n", line, file );
+			errfs( 0, "Path too long on line %lu: %s\n", line, file );
 
 			offset = 0;
 			++line;
@@ -102,7 +100,7 @@ size_t process_data()
 
 		if ( stat( file, &statf ) )
 		{
-			fprintf( stderr, "Error calling stat on %s: %s\n", file, strerror( errno ) );
+			errf( 0, "Error calling stat on %s", file );
 		}
 		else
 		{

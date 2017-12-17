@@ -1,7 +1,6 @@
-#include <errno.h>
+#include "error.h"
+
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <sys/wait.h>
@@ -21,12 +20,12 @@ void c_exit( int const status )
 	{
 		if ( unlink( tmpsock ) == -1 )
 		{
-			fprintf( stderr, "Error unlinking %s: %s\n", tmpsock, strerror( errno ) );
+			errf( 0, "Error unlinking %s", tmpsock );
 		}
 
 		if ( rmdir( tmppath ) == -1 )
 		{
-			fprintf( stderr, "Error unlinking %s: %s\n", tmppath, strerror( errno ) );
+			errf( 0, "Error unlinking %s", tmppath );
 		}
 	}
 
