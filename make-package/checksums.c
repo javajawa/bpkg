@@ -91,7 +91,7 @@ void process_output( char * output, struct package_data* stats )
 		errfs( 0, "Incorrect size from '" CHK1_COMMAND "', expected %d, got %lu", CHK1_SIZE, b_read );
 	}
 
-	read( fd(CHK2_OUTPUT_R), stats->chk2, CHK2_SIZE );
+	b_read = read( fd(CHK2_OUTPUT_R), stats->chk2, CHK2_SIZE );
 
 	if ( b_read == -1 )
 	{
