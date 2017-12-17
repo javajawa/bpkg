@@ -8,7 +8,7 @@
 #include "files.h"
 #include "rules.h"
 
-void c_exit( int const status )
+void clean_exit( int const status )
 {
 	close_descriptors();
 

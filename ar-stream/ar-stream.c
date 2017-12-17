@@ -3,31 +3,37 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
+#include <stdlib.h>
+
+#define PROGRAM_NAME "ar-stream"
 
 #include "common/null-stream.h"
+#include "common/error.h"
 
-int main( void ) // int argc, char** argv )
+void clean_exit( int code )
 {
-	int input_socket;
-	char buffer[4096];
+	close( STDIN_FILENO );
+	exit( code );
+}
+
+int main( void )
+{
+	char const * const zero = "0               ";
+
+	int     input_socket;
+	char    buffer[4096];
 	ssize_t bytes_read;
 	ssize_t size = 0;
-	off_t seek;
+	off_t   seek;
 
-	struct sockaddr sock;
+	struct  sockaddr sock;
 	socklen_t sock_size = sizeof(sock);
 
 	bytes_read = getsockname( STDIN_FILENO, &sock, &sock_size );
 
-	char const * const zero = "0               ";
-
 	if ( bytes_read == -1 )
 	{
-		fprintf( stderr, "ar-stream: Error getting socket info: %s\n", strerror( errno ) );
-		return 2;
+		err( 1, "Error getting socket info" );
 	}
 
 	write( STDOUT_FILENO, "!<arch>\n", 8 );
@@ -38,8 +44,7 @@ int main( void ) // int argc, char** argv )
 
 		if ( input_socket == -1 )
 		{
-			fprintf( stderr, "ar-stream: Accept resturned %s\n", strerror( errno ) );
-			return 2;
+			err( 1, "Accept failed" );
 		}
 
 		size = 0;
@@ -50,14 +55,12 @@ int main( void ) // int argc, char** argv )
 
 		if ( bytes_read == 0 )
 		{
-			close( STDIN_FILENO );
-			return 0;
+			clean_exit( 0 );
 		}
 
 		if ( bytes_read < 0 )
 		{
-			fprintf( stderr, "ar-stream: Error reading from input: %s\n", strerror( -bytes_read ) );
-			return 1;
+			err( 1, "Error reading from input" );
 		}
 
 		buffer[bytes_read] = ' ';
@@ -72,7 +75,7 @@ int main( void ) // int argc, char** argv )
 
 		if ( seek == -1 )
 		{
-			fprintf( stderr, "Error getting seek location for file %s: %s\n", buffer, strerror( errno ) );
+			errf( 0, "Error getting seek location for file %s", buffer );
 			seek = 0;
 		}
 
@@ -87,7 +90,7 @@ int main( void ) // int argc, char** argv )
 			}
 			if ( bytes_read == -1 )
 			{
-				fprintf( stderr, "ar-stream: Error reading from input: %s", strerror(errno ) );
+				err( 0, "Error reading from input socket" );
 				close( input_socket );
 				break;
 			}
@@ -102,22 +105,21 @@ int main( void ) // int argc, char** argv )
 
 			if ( bytes_read < 0 )
 			{
-				fprintf( stderr, "Error seeking back to %lu to write size: %s\n", seek, strerror( errno ) );
+				errf( 0, "Error seeking back to %lu to write size\n", seek );
 				continue;
 			}
 
-			// TODO: replace 10 with a #define
 			bytes_read = sprintf( buffer, "%-10lu", size );
 
 			if ( bytes_read < 0 )
 			{
-				fprintf( stderr, "Error converting size to decimal: %s\n", strerror( errno ) );
+				err( 0, "Error converting file size to decimal" );
 				continue;
 			}
 
 			if ( bytes_read > 10 )
 			{
-				fprintf( stderr, "Filed to write size: Size %lu exceeds 12 decimal digits\n", size );
+				errfs( 0, "Filed to write size: Size %lu exceeds 12 decimal digits\n", size );
 				continue;
 			}
 
@@ -125,15 +127,14 @@ int main( void ) // int argc, char** argv )
 
 			if ( bytes_read < 0 )
 			{
-				// TODO: error
+				err( 0, "Error writing size back to archive" );
 			}
 
 			bytes_read = lseek( STDOUT_FILENO, 0, SEEK_END );
 
 			if ( bytes_read == -1 )
 			{
-				fprintf( stderr, "Unable to see back to the end of the output file: %s\n", strerror( errno ) );
-				return 4;
+				err( 1, "Unable to seek back to the end of the output file" );
 			}
 		}
 	}

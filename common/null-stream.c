@@ -13,7 +13,6 @@ ssize_t read_null_stream( int fd, char * const dest, size_t const maxlen )
 	{
 		result = read( fd, dest + offset, 1 );
 
-
 		if ( result == -1 )
 		{
 			dest[offset] = '\0';
@@ -23,6 +22,7 @@ ssize_t read_null_stream( int fd, char * const dest, size_t const maxlen )
 		if ( result == 0 )
 		{
 			dest[offset] = '\0';
+			errno = ENODATA;
 			return -1;
 		}
 

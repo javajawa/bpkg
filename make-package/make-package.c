@@ -170,5 +170,5 @@ int main( int argc, char ** argv )
 	free( debdir );
 
 	// Tidy up and exit cleanly
-	c_exit( 0 );
+	clean_exit( 0 );
 }

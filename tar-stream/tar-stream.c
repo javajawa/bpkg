@@ -11,12 +11,12 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#include <assert.h>
-#include <errno.h>
-
 #include <pwd.h>
 #include <grp.h>
 
+#define PROGRAM_NAME "tar-stream"
+
+#include "common/error.h"
 #include "common/null-stream.h"
 #include "common/tar.h"
 
@@ -121,14 +121,13 @@ void write_tar_stream( int const fd, ssize_t const size )
 	ssize_t written = 0;
 	ssize_t buffer_usage;
 
-	//written = splice( fd, NULL, STDOUT_FILENO, NULL, size, 0 );
 	while ( 1 )
 	{
 		buffer_usage = read( fd, buffer, BUFFER_SIZE );
 
 		if ( buffer_usage == -1 )
 		{
-			fprintf( stderr, "Unable to read file: %s\n", strerror( errno ) );
+			err( 0, "Unable to read file" );
 			return;
 		}
 
@@ -141,7 +140,7 @@ void write_tar_stream( int const fd, ssize_t const size )
 
 		if ( buffer_usage == -1 )
 		{
-			fprintf( stderr, "Unable to write file: %s\n", strerror( errno ) );
+			err( 0, "Unable to write file" );
 			return;
 		}
 
@@ -150,7 +149,7 @@ void write_tar_stream( int const fd, ssize_t const size )
 
 	if ( written != size )
 	{
-		fprintf( stderr, "Size mismatch: wrote %lu of %lu\n", written, size );
+		errfs( 0, "Size mismatch: wrote %lu of %lu", written, size );
 	}
 
 	// TODO: reuse a buffer for this
@@ -171,19 +170,19 @@ int open_context_dir( char const * const dir )
 		switch ( errno )
 		{
 			case EPERM:
-				fprintf( stderr, "Not permitted to open %s\n", dir );
+				errfs( 0, "Not permitted to open %s", dir );
 				return EPERM;
 
 			case ELOOP:
-				fprintf( stderr, "Refusing to operate on symlink directory %s\n", dir );
+				errfs( 0, "Refusing to operate on symlink directory %s", dir );
 				return ELOOP;
 
 			case ENOENT:
-				fprintf( stderr, "Unable to find context directory %s\n", dir );
+				errfs( 0, "Unable to find context directory %s", dir );
 				return ENOENT;
 
 			default:
-				fprintf( stderr, "Error opening %s: %s\n", dir, strerror( errno ) );
+				errf( 0, "Error opening %s", dir );
 		}
 	}
 
@@ -200,75 +199,66 @@ uint8_t verify_input_data(
 	uint8_t err = 0;
 
 	/* Checks for filename validity */
-
 	if ( file_len > TAR_FILELEN )
 	{
-		fprintf( stderr, "RECORD ERROR: filename %s... is too long\n", file );
-
-		return 1;
+		errfs( 0, "RECORD ERROR: filename %s... is too long", file );
+		err = 1;
 	}
 
 	if ( file_len == 0 )
 	{
-		fprintf( stderr, "RECORD ERROR: filename is empty\n" );
-
-		return 1;
+		errs( 0, "RECORD ERROR: filename is empty" );
+		err = 1;
 	}
 
 	if ( file[0] == '/' )
 	{
-		fprintf( stderr, "RECORD ERROR: path %s is not relative\n", file );
+		errfs( 0, "RECORD ERROR: path %s is not relative", file );
 		err = 1;
 	}
 
 	if ( valid_name( file, file_len ) )
 	{
-		fprintf( stderr, "RECORD ERROR: File name %s is invalid\n", file );
+		errfs( 0, "RECORD ERROR: File name %s is invalid", file );
 		err = 1;
 	}
 
 	/* Checks for username validity */
-
 	if ( user_len > TAR_USERLEN )
 	{
-		fprintf( stderr, "RECORD ERROR: user name %s... is too long\n", user );
-
-		return 1;
+		errfs( 0, "RECORD ERROR: user name %s... is too long", user );
+		err = 1;
 	}
-
-	if ( valid_name( user, user_len ) )
+	else if ( valid_name( user, user_len ) )
 	{
-		fprintf( stderr, "RECORD ERROR: user name %s is invalid\n", user );
+		errfs( 0, "RECORD ERROR: user name %s is invalid", user );
 	}
 
 	/* Checks for groupname validity */
-
 	if ( group_len > TAR_USERLEN )
 	{
-		fprintf( stderr, "RECORD ERROR: group name %s... is too long\n", group );
-
-		return 1;
+		errfs( 0, "RECORD ERROR: group name %s... is too long", group );
+		err = 1;
 	}
-
-	if ( valid_name( group, TAR_USERLEN ) )
+	else if ( valid_name( group, TAR_USERLEN ) )
 	{
-		fprintf( stderr, "RECORD ERROR: Group name %s is invalid\n", group );
+		errfs( 0, "RECORD ERROR: Group name %s is invalid", group );
+		err = 1;
 	}
 
 	/* Checks for mode validity */
-
 	if ( mask_len > 6 )
 	{
-		fprintf( stderr, "RECORD ERROR: mask value %s... is too long\n", mask );
-
-		return 1;
+		errfs( 0, "RECORD ERROR: mask value %s... is too long", mask );
+		err = 1;
 	}
 
 	sscanf( mask, "%ho", mode );
 
 	if ( *mode > 07777 )
 	{
-		fprintf( stderr, "RECORD ERROR: Mask value %ho is invalid\n", *mode );
+		errfs( 0, "RECORD ERROR: Mask value %ho is invalid", *mode );
+		err = 1;
 	}
 
 	return err;
@@ -291,15 +281,15 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 				return openat_stat( ctx, path, stat, O_PATH );
 
 			case EACCES:
-				fprintf( stderr, "Access denied to %s\n", path );
+				errfs( 0, "Access denied to %s", path );
 				break;
 
 			case ENOENT:
-				fprintf( stderr, "%s does not exist\n", path );
+				errfs( 0, "%s does not exist", path );
 				break;
 
 			default:
-				fprintf( stderr, "Unable to read file %s -- err %d\n", path, code );
+				errf( 0, "Unable to read file %s", path );
 		}
 
 		return 0;
@@ -308,7 +298,7 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 
 	if ( ( flags &~ O_PATH ) && flock( fd, LOCK_SH ) )
 	{
-		fprintf( stderr, "Unable to lock file %s -- err %d\n", path, errno );
+		errf( 0, "Unable to lock file %s", path );
 		close( fd );
 
 		return 0;
@@ -323,7 +313,7 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 
 		if ( code == 101 )
 		{
-			fprintf( stderr, "Link %s is over 100 characters\n", path );
+			errfs( 0, "Link %s is over 100 characters", path );
 			close( fd );
 
 			return 0;
@@ -340,7 +330,7 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 	{
 		code = errno;
 
-		fprintf( stderr, "Unable to stat file %s -- err %d\n", path, code );
+		errf( 0, "Unable to stat file %s", path );
 		close( fd );
 
 		return 0;
@@ -375,7 +365,7 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 			break;
 
 		default:
-			fprintf( stderr, "Unknown file type for inode %s\n", file );
+			errfs( 0, "Unknown file type for inode %s", file );
 
 			return -1;
 	}
@@ -417,7 +407,7 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 
 	if ( sep > 131 )
 	{
-		fprintf( stderr, "No suitable path seperator in %s\n", file );
+		errfs( 0, "No suitable path seperator in %s", file );
 
 		return -1;
 	}
@@ -490,7 +480,7 @@ int main( int argc, char** argv )
 
 	if ( argc != 2 )
 	{
-		fprintf( stderr, "No context directory defined\n" );
+		errs( 0, "No context directory defined" );
 		return 2;
 	}
 
@@ -514,7 +504,7 @@ int main( int argc, char** argv )
 
 		if ( file_len < -1 )
 		{
-			fprintf( stderr, "Error reading input stream: %s\n", strerror( -file_len ) );
+			err( 0, "Error reading input stream" );
 			return 3;
 		}
 
