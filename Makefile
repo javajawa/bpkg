@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 .DEFAULT_GOAL = build
-.PHONY = clean build debug bootstrap deps
+.PHONY = clean build debug bootstrap deps valgrind
 
 TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps bpkg-make-list)
 
