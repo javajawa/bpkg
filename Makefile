@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 .DEFAULT_GOAL = build
-.PHONY = clean build debug bootstrap
+.PHONY = clean build debug bootstrap deps
 
 TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
 
@@ -59,6 +59,12 @@ bootstrap: build
 valgrind: debug manifest
 	rm -f valgrind
 	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
+
+deps:
+	# Build-Depends:
+	sudo apt --no-install-recommends c-compiler make
+	# Depends:
+	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
 
 clean:
 	rm -Rf $(COM_DEPS) $(TAR_DEPS) $(AR_DEPS) $(BPKG_DEPS) usr manifest
