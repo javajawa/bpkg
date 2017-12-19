@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 .DEFAULT_GOAL = build
-.PHONY = clean build bootstrap
+.PHONY = clean build debug bootstrap
 
 TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
 
@@ -15,7 +15,14 @@ TAR_DEPS  := $(subst .c,.o,$(wildcard tar-stream/*.c))
 AR_DEPS   := $(subst .c,.o,$(wildcard ar-stream/*.c))
 BPKG_DEPS := $(subst .c,.o,$(wildcard make-package/*.c))
 
-CFLAGS=-std=c11 -Wall -Wextra -Werror -pedantic -O2 -I.
+
+CFLAGS := -std=c11 -Wall -Wextra -Werror -pedantic -I.
+
+build: CFLAGS += -O2 -s
+build: $(TARGETS)
+
+debug: CFLAGS += -O0 -g -DDEBUG
+debug: $(TARGETS)
 
 %.o : src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -40,8 +47,6 @@ usr/bin/bpkg-checkbuilddeps: src/checkbuilddeps
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
-build: $(TARGETS)
-
 manifest: build
 	find etc usr >$@
 
@@ -50,6 +55,10 @@ bootstrap: build
 	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb.dat
 	PATH=./usr/bin:${PATH} bpkg-build .
 	@printf "\nRun \`sudo apt install /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb\`\n"
+
+valgrind: debug manifest
+	rm -f valgrind
+	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
 
 clean:
 	rm -Rf $(COM_DEPS) $(TAR_DEPS) $(AR_DEPS) $(BPKG_DEPS) usr manifest
