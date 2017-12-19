@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 .DEFAULT_GOAL = build
-.PHONY = clean build bootstrap
+.PHONY = clean build bootstrap deps
 
 TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
 
@@ -50,6 +50,10 @@ bootstrap: build
 	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb.dat
 	PATH=./usr/bin:${PATH} bpkg-build .
 	@printf "\nRun \`sudo apt install /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb\`\n"
+
+deps:
+	sudo apt --no-install-recommends c-compiler make
+	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
 
 clean:
 	rm -Rf $(COM_DEPS) $(TAR_DEPS) $(AR_DEPS) $(BPKG_DEPS) usr manifest
