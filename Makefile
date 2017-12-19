@@ -74,5 +74,11 @@ valgrind: debug manifest
 	rm -f valgrind
 	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
 
+deps:
+	# Build-Depends:
+	sudo apt --no-install-recommends c-compiler make
+	# Depends:
+	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
+
 clean:
 	rm -Rf $(BUILD) usr manifest
