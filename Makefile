@@ -80,5 +80,9 @@ deps:
 	# Depends:
 	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
 
+valgrind: debug manifest
+	rm -f valgrind
+	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
+
 clean:
 	rm -Rf $(BUILD) usr manifest
