@@ -10,12 +10,14 @@ PACKAGE := $(subst Package: ,,$(PACKAGE))
 VERSION := $(shell grep '^Version:' 'debian/control')
 VERSION := $(subst Version: ,,$(VERSION))
 
-COM_DEPS  := $(subst .c,.o,$(wildcard common/*.c))
-TAR_DEPS  := $(subst .c,.o,$(wildcard tar-stream/*.c))
-AR_DEPS   := $(subst .c,.o,$(wildcard ar-stream/*.c))
-BPKG_DEPS := $(subst .c,.o,$(wildcard make-package/*.c))
+BUILD   := build
 
-CFLAGS := -std=c11 -Wall -Wextra -Werror -pedantic -I.
+COM_DEPS  := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/common/*.c)))
+TAR_DEPS  := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/tar-stream/*.c)))
+AR_DEPS   := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/ar-stream/*.c)))
+BPKG_DEPS := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/make-package/*.c)))
+
+CFLAGS := -std=c11 -Wall -Wextra -Werror -pedantic -Isrc/
 
 build: CFLAGS += -O2 -s
 build: $(TARGETS)
@@ -23,7 +25,12 @@ build: $(TARGETS)
 debug: CFLAGS += -O0 -g -DDEBUG
 debug: $(TARGETS)
 
-%.o : src/%.c
+build/%.o : src/%.c
+	@mkdir -vp $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+obj/make-package/%.o : src/make-package/%.c
+	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 usr/bin/tar-stream: $(TAR_DEPS) $(COM_DEPS)
@@ -38,11 +45,11 @@ usr/bin/make-package: $(BPKG_DEPS) $(COM_DEPS)
 	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
-usr/bin/bpkg-build: bpkg-build/bpkg-build
+usr/bin/bpkg-build: src/bpkg-build/bpkg-build
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
-usr/bin/bpkg-checkbuilddeps: checkbuilddeps/checkbuilddeps
+usr/bin/bpkg-checkbuilddeps: src/checkbuilddeps/checkbuilddeps
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
@@ -70,4 +77,4 @@ valgrind: debug manifest
 	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
 
 clean:
-	rm -Rf $(COM_DEPS) $(TAR_DEPS) $(AR_DEPS) $(BPKG_DEPS) usr manifest
+	rm -Rf $(BUILD) usr manifest
