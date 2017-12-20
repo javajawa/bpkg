@@ -15,7 +15,6 @@ TAR_DEPS  := $(subst .c,.o,$(wildcard tar-stream/*.c))
 AR_DEPS   := $(subst .c,.o,$(wildcard ar-stream/*.c))
 BPKG_DEPS := $(subst .c,.o,$(wildcard make-package/*.c))
 
-
 CFLAGS := -std=c11 -Wall -Wextra -Werror -pedantic -I.
 
 build: CFLAGS += -O2 -s
@@ -39,11 +38,11 @@ usr/bin/make-package: $(BPKG_DEPS) $(COM_DEPS)
 	@mkdir -vp $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
-usr/bin/bpkg-build: src/bpkg-build
+usr/bin/bpkg-build: bpkg-build/bpkg-build
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
-usr/bin/bpkg-checkbuilddeps: src/checkbuilddeps
+usr/bin/bpkg-checkbuilddeps: checkbuilddeps/checkbuilddeps
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
