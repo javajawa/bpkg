@@ -1,4 +1,6 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "process-data.h"
 
@@ -109,10 +111,33 @@ size_t process_data()
 
 		match_rule( file, offset, &user, &group, &mask );
 
-		write_null_stream( fd(TARSTREAM_INPUT_W), file );
-		write_null_stream( fd(TARSTREAM_INPUT_W), user );
-		write_null_stream( fd(TARSTREAM_INPUT_W), group );
-		write_null_stream( fd(TARSTREAM_INPUT_W), mask );
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), file );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), user );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), group );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), mask );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file );
+		}
 
 		offset = 0;
 		++line;

@@ -1,4 +1,6 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "rules.h"
 
@@ -18,6 +20,8 @@ struct rule_list rules = { NULL, 0 };
 
 void load_rules()
 {
+	int result;
+
 	if ( fd(CURRENT_FILE) != -1 )
 	{
 		errs( 1, "Already reading a file when calling load_rules" );
@@ -62,15 +66,26 @@ void load_rules()
 		perror( "Error attempt to allocate rules memory" );
 	}
 
-	rewind( file );
+	result = fseek( file, 0L, SEEK_SET );
+
+	if ( result == -1 )
+	{
+		err( 1, "Unable to seek in rules file" );
+	}
 
 	for ( size_t i = 0; i < rules.count; ++i )
 	{
 		rule(i).path = malloc( 256 );
-		fscanf(
+		result = fscanf(
 			file, "%31s %31s %7s %250[^\n]\n",
 			rule(i).user, rule(i).group, rule(i).mask, rule(i).path
 		);
+
+		if ( result != 4 )
+		{
+			errfs( 1, "Bad rule format at line %lu", i );
+		}
+
 		rule(i).path_len = strlen( rule(i).path );
 	}
 

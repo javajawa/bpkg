@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-ssize_t read_null_stream( int fd, char * const dest, size_t const maxlen );
-size_t write_null_stream( int fd, char const * const src );
+ssize_t read_null_stream( int fd, char * const dest, size_t const maxlen ) __wur;
+size_t write_null_stream( int fd, char const * const src ) __wur;
 
 #endif

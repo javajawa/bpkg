@@ -1,5 +1,7 @@
 // vim: nospell
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -35,10 +37,21 @@ struct package_data stats = {
 
 int main( int argc, char ** argv )
 {
+	char * debdir;
+
+#ifdef TRACE
+	char * arstream[]  = { "strace", "-o", "strace.ar-stream",  "ar-stream", NULL };
+	char * tarstream[] = { "strace", "-o", "strace.tar-stream", "tar-stream", NULL, NULL };
+	char * const xz[]  = { "xz", NULL };
+
+	const size_t dir_param_offset = 4;
+#else
 	char * arstream[]  = {  "ar-stream", NULL };
 	char * tarstream[] = { "tar-stream", NULL, NULL };
 	char * const xz[]  = { "xz", NULL };
-	char * debdir;
+
+	const size_t dir_param_offset = 1;
+#endif
 
 	// Parameter check
 	if ( argc != 3 )
@@ -105,7 +118,10 @@ int main( int argc, char ** argv )
 
 	// Write out the Manifest file
 	ar_header( "debian-binary" );
-		write( fd(AR_INPUT_W), "2.0\n", 4 );
+		if ( write( fd(AR_INPUT_W), "2.0\n", 4 ) != 4 )
+		{
+			err( 1, "Failed to write debian archive version" );
+		}
 	ar_footer();
 
 	// Write out the control section
@@ -116,7 +132,7 @@ int main( int argc, char ** argv )
 		create_pipes( pipe(XZIP_INPUT_R) );
 
 		// Fork to tar-stream
-		tarstream[1] = debdir;
+		tarstream[dir_param_offset] = debdir;
 		pipe_fork_exec( tarstream, pipe(TARSTREAM_INPUT_R), pipe(XZIP_INPUT_W) );
 
 		// Fork to xzip
@@ -136,7 +152,7 @@ int main( int argc, char ** argv )
 		create_pipes( pipe(XZIP_INPUT_R) );
 
 		// Fork to tar-stream
-		tarstream[1] = argv[1];
+		tarstream[dir_param_offset] = argv[1];
 		pipe_fork_exec( tarstream, pipe(TARSTREAM_INPUT_R), pipe(XZIP_INPUT_W) );
 
 		// Fork to xzip
