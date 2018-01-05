@@ -1,13 +1,15 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define PROGRAM_NAME "ar-stream"
 
-#include "common/null-stream.h"
 #include "common/error.h"
 
 void clean_exit( int code )
@@ -16,6 +18,17 @@ void clean_exit( int code )
 	exit( code );
 }
 
+#define checked_header_write( field, buffer, length ) \
+	bytes_written = write( STDOUT_FILENO, buffer, length );\
+	if ( bytes_written < 0 )\
+	{\
+		err( 0, "Error writing ar header field" field );\
+	}\
+	if ( bytes_written != length )\
+	{\
+		errfs( 0, "Only wrote %lu of %d bytes for ar header field" field, bytes_written, length );\
+	}
+
 int main( void )
 {
 	char const * const zero = "0               ";
@@ -23,6 +36,7 @@ int main( void )
 	int     input_socket;
 	char    buffer[4096];
 	ssize_t bytes_read;
+	ssize_t bytes_written;
 	ssize_t size = 0;
 	off_t   seek;
 
@@ -36,7 +50,7 @@ int main( void )
 		err( 1, "Error getting socket info" );
 	}
 
-	write( STDOUT_FILENO, "!<arch>\n", 8 );
+	checked_header_write( "Archive Marker", "!<arch>\n", 8 );
 
 	while ( 1 )
 	{
@@ -50,28 +64,56 @@ int main( void )
 		size = 0;
 		memset( buffer, ' ', 17 );
 
-		write( input_socket, "k", 1 );
-		bytes_read = read_null_stream( input_socket, buffer, 16 );
+		bytes_written = write( input_socket, "k", 1 );
 
-		if ( bytes_read == 0 )
+		if ( bytes_written < 0 )
 		{
-			clean_exit( 0 );
+			err( 1, "Error sending ACK packet on input socket" );
 		}
+
+		if ( bytes_written != 1 )
+		{
+			errs( 1, "Error sending ACK packet on input socket" );
+		}
+
+		bytes_read = read( input_socket, buffer, 16 );
 
 		if ( bytes_read < 0 )
 		{
 			err( 1, "Error reading from input" );
 		}
 
-		buffer[bytes_read] = ' ';
-		write( STDOUT_FILENO, buffer, 16 );
-		write( STDOUT_FILENO, zero, 12 ); // Timestamp
-		write( STDOUT_FILENO, zero, 6 );  // Owner
-		write( STDOUT_FILENO, zero, 6 );  // Group
-		write( STDOUT_FILENO, "100644  ", 8 );  // Mode
+		if ( buffer[bytes_read-1] != 0 )
+		{
+			errs( 1, "Error reading from input: filename not terminated" );
+		}
+
+		if ( bytes_read == 1 )
+		{
+			clean_exit( 0 );
+		}
+
+		bytes_written = write( input_socket, "k", 1 );
+
+		if ( bytes_written < 0 )
+		{
+			err( 1, "Error sending ACK packet on input socket" );
+		}
+
+		if ( bytes_written != 1 )
+		{
+			errs( 1, "Error sending ACK packet on input socket" );
+		}
+
+		buffer[bytes_read-1] = ' ';
+		checked_header_write( "Filename",  buffer, 16 );
+		checked_header_write( "Timestamp", zero, 12 );
+		checked_header_write( "Owner",     zero, 6 );
+		checked_header_write( "Group",     zero, 6 );
+		checked_header_write( "File Mode", "100644  ", 8 );
 		seek = lseek( STDOUT_FILENO, 0, SEEK_CUR );
-		write( STDOUT_FILENO, zero, 10 ); // Size
-		write( STDOUT_FILENO, "`\n", 2 ); // End
+		checked_header_write( "Size",       zero, 10 );
+		checked_header_write( "EOH",        "`\n", 2 );
 
 		if ( seek == -1 )
 		{
@@ -96,7 +138,18 @@ int main( void )
 			}
 
 			size += bytes_read;
-			write( STDOUT_FILENO, buffer, bytes_read );
+			bytes_written = write( STDOUT_FILENO, buffer, bytes_read );
+
+			if ( bytes_written < 0 )
+			{
+				err( 0, "Error writing size back to archive" );
+			}
+
+			if ( bytes_written != bytes_read )
+			{
+				errfs( 0, "Only wrote %ld of %ld bytes to archive", bytes_written, bytes_read );
+			}
+
 		}
 
 		if ( seek )
@@ -123,11 +176,16 @@ int main( void )
 				continue;
 			}
 
-			bytes_read = write( STDOUT_FILENO, buffer, bytes_read );
+			bytes_written = write( STDOUT_FILENO, buffer, bytes_read );
 
-			if ( bytes_read < 0 )
+			if ( bytes_written < 0 )
 			{
 				err( 0, "Error writing size back to archive" );
+			}
+
+			if ( bytes_written != bytes_read )
+			{
+				errfs( 0, "Only wrote %ld of %ld bytes to archive", bytes_written, bytes_read );
 			}
 
 			bytes_read = lseek( STDOUT_FILENO, 0, SEEK_END );

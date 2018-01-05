@@ -1,4 +1,6 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "process-control.h"
 
@@ -20,6 +22,7 @@ size_t process_control()
 	struct dirent * file;
 	struct stat stat;
 	size_t size = 0;
+	ssize_t result;
 
 	char const * const user  = "root";
 	char const * const group = "root";
@@ -73,10 +76,33 @@ size_t process_control()
 			size += stat.st_size;
 		}
 
-		write_null_stream( fd(TARSTREAM_INPUT_W), file->d_name );
-		write_null_stream( fd(TARSTREAM_INPUT_W), user );
-		write_null_stream( fd(TARSTREAM_INPUT_W), group );
-		write_null_stream( fd(TARSTREAM_INPUT_W), mask );
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), file->d_name );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file->d_name );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), user );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file->d_name );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), group );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file->d_name );
+		}
+
+		result = write_null_stream( fd(TARSTREAM_INPUT_W), mask );
+
+		if ( result == -1 )
+		{
+			errf( 1, "Error writing to tar-stream (file=%s)", file->d_name );
+		}
 	}
 
 	closedir( dir );

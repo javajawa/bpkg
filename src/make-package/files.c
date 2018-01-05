@@ -1,4 +1,6 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 // Must be included first to avoid conflict with pipe(2) and
 // the #define pipe(X) macro
@@ -109,7 +111,7 @@ void create_fifo( struct pipe_id const sink )
 
 void create_file( char const * const path, struct pipe_id offset )
 {
-	fdp(offset) = open( path, O_WRONLY | O_CREAT | O_EXCL, 0600 );
+	fdp(offset) = open( path, O_WRONLY | O_CREAT | O_EXCL, 0640 );
 
 	if ( fdp(offset) != -1 )
 	{

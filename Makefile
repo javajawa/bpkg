@@ -17,7 +17,7 @@ TAR_DEPS  := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/tar-stream/*.c)
 AR_DEPS   := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/ar-stream/*.c)))
 BPKG_DEPS := $(subst src/,$(BUILD)/,$(subst .c,.o,$(wildcard src/make-package/*.c)))
 
-CFLAGS := -std=c11 -Wall -Wextra -Werror -pedantic -Isrc/
+CFLAGS := -std=c11 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2 -Wall -Wextra -Werror -pedantic -Isrc/ $(CFLAGS)
 
 build: CFLAGS += -O2 -s
 build: $(TARGETS)

@@ -1,4 +1,6 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "write-control.h"
 
@@ -16,8 +18,7 @@
 void write_control( char * out, struct package_data stats )
 {
 	ssize_t result;
-
-	size_t len = strlen( out );
+	ssize_t len = strlen( out );
 
 	char * cin  = "debian/control";
 	char * cout = calloc( len + 5, sizeof(char) );
@@ -56,17 +57,76 @@ void write_control( char * out, struct package_data stats )
 
 	close_fd( pipe(CONTROL_R) );
 
-	len = snprintf( buffer, 30, "Size: %lu\n", stats.packed_size );
-	write( fd(CONTROL_W), buffer, len );
+	len = snprintf( buffer, 254, "Filename: %s\n", out );
+	result = write( fd(CONTROL_W), buffer, len );
 
-	len = snprintf( buffer, 30, "Installed-Size: %lu\n", stats.installed_size );
-	write( fd(CONTROL_W), buffer, len );
+	if ( result == -1 )
+	{
+		err( 0, "Error writing " CHK2_NAME ": to control file" );
+	}
+	if ( result != len )
+	{
+		errf( 0, "Only wrote %lu of %lu bytes of " CHK2_NAME ": to control file", result, len );
+	}
+
+	len = snprintf( buffer, 30, "Size: %lu\n", stats.packed_size );
+	result = write( fd(CONTROL_W), buffer, len );
+
+	if ( result == -1 )
+	{
+		err( 0, "Error writing Size: to control file" );
+	}
+	if ( result != len )
+	{
+		errf( 0, "Only wrote %lu of %lu bytes of Size: to control file", result, len );
+	}
+
+	len = snprintf( buffer, 30, "Installed-Size: %lu\n", stats.installed_size >> 10 );
+	result = write( fd(CONTROL_W), buffer, len );
+
+	if ( result == -1 )
+	{
+		err( 0, "Error writing Installed-Size: to control file" );
+	}
+	if ( result != len )
+	{
+		errf( 0, "Only wrote %lu of %lu bytes of Installed-Size: to control file", result, len );
+	}
 
 	len = snprintf( buffer, 254, CHK1_NAME ": %s\n", stats.chk1 );
-	write( fd(CONTROL_W), buffer, len );
+	result = write( fd(CONTROL_W), buffer, len );
+
+	if ( result == -1 )
+	{
+		err( 0, "Error writing " CHK1_NAME ": to control file" );
+	}
+	if ( result != len )
+	{
+		errf( 0, "Only wrote %lu of %lu bytes of " CHK1_NAME ": to control file", result, len );
+	}
 
 	len = snprintf( buffer, 254, CHK2_NAME ": %s\n", stats.chk2 );
-	write( fd(CONTROL_W), buffer, len );
+	result = write( fd(CONTROL_W), buffer, len );
+
+	if ( result == -1 )
+	{
+		err( 0, "Error writing " CHK2_NAME ": to control file" );
+	}
+	if ( result != len )
+	{
+		errf( 0, "Only wrote %lu of %lu bytes of " CHK2_NAME ": to control file", result, len );
+	}
+
+	result = write( fd(CONTROL_W), "\n", 1 );
+
+	if ( result == -1 )
+	{
+		err( 0, "Error writing " CHK2_NAME ": to control file" );
+	}
+	if ( result != 1 )
+	{
+		errf( 0, "Wrote %lu of 1 bytes for trailing line in control file", result );
+	}
 
 	close_fd( pipe(CONTROL_W) );
 

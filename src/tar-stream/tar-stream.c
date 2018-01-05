@@ -1,6 +1,8 @@
 // vim: nospell
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +23,10 @@
 #include "common/tar.h"
 
 #define BUFFER_SIZE 4096
+
+#if ( BUFFER_SIZE < TARBLOCKSIZE )
+#error "tar-stream buffer size must be equal to or larger than tar's block size"
+#endif
 
 static char buffer[BUFFER_SIZE];
 
@@ -152,10 +158,12 @@ void write_tar_stream( int const fd, ssize_t const size )
 		errfs( 0, "Size mismatch: wrote %lu of %lu", written, size );
 	}
 
-	// TODO: reuse a buffer for this
 	while ( written % TARBLOCKSIZE != 0 )
 	{
-		written += write( STDOUT_FILENO, "\0", 1 );
+		buffer_usage = TARBLOCKSIZE - ( written % TARBLOCKSIZE );
+		memset( buffer, 0, buffer_usage );
+
+		written += write( STDOUT_FILENO, buffer, buffer_usage );
 	}
 }
 
@@ -529,7 +537,20 @@ int main( int argc, char** argv )
 
 		if ( stream_size > -1 )
 		{
-			write( STDOUT_FILENO, header, TARBLOCKSIZE );
+			file_len = write( STDOUT_FILENO, header, TARBLOCKSIZE );
+
+			if ( file_len == -1 )
+			{
+				errf( 0, "Error writing file header for %s", file );
+
+				return 4;
+			}
+			if ( file_len != TARBLOCKSIZE )
+			{
+				errfs( 0, "Error writing file header for %s", file );
+
+				return 4;
+			}
 
 			if ( stream_size > 0 )
 			{
