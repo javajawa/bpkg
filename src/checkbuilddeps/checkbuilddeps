@@ -26,9 +26,9 @@ my $status = DPKG::Parse::Status->new;
 
 $status->parse();
 
-while (my $entry = $status->next_package)
+PACKAGE: while (my $entry = $status->next_package)
 {
-	continue unless $entry->status eq 'install ok installed';
+	next PACKAGE unless $entry->status eq 'install ok installed';
 
 	$facts->add_installed_package(
 		$entry->package,
