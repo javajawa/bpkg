@@ -3,7 +3,7 @@ Package: bpkg
 Version: 1.0-1
 Section: devel
 Priority: optional
-Architecture: all
+Architecture: amd64
 Build-Depends: c-compiler | gcc, make
 Depends: libc6, make, xz-utils, libdpkg-perl, libdpkg-parse-perl
 Essential: no
