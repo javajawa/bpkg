@@ -3,7 +3,7 @@
 .DEFAULT_GOAL = build
 .PHONY = clean build debug bootstrap deps
 
-TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps)
+TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpkg-checkbuilddeps bpkg-make-list)
 
 PACKAGE := $(shell grep '^Package:' 'debian/control')
 PACKAGE := $(subst Package: ,,$(PACKAGE))
@@ -50,6 +50,10 @@ usr/bin/bpkg-build: src/bpkg-build/bpkg-build
 	cp $< $@
 
 usr/bin/bpkg-checkbuilddeps: src/checkbuilddeps/checkbuilddeps
+	@mkdir -vp $(dir $@)
+	cp $< $@
+
+usr/bin/bpkg-make-list: src/bpkg-make-list/bpkg-make-list
 	@mkdir -vp $(dir $@)
 	cp $< $@
 
