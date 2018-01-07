@@ -8,20 +8,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include "files.h"
 #include "error.h"
 
 #include "common/null-stream.h"
 
-size_t process_control()
+void process_control()
 {
 	DIR * dir;
 	struct dirent * file;
-	struct stat stat;
-	size_t size = 0;
 	ssize_t result;
 
 	char const * const user  = "root";
@@ -67,15 +62,6 @@ size_t process_control()
 			continue;
 		}
 
-		if ( fstatat( fd(CURRENT_FILE), file->d_name, &stat, AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT ) )
-		{
-			errf( 1, "Error calling stat on debian/%s", file->d_name );
-		}
-		else
-		{
-			size += stat.st_size;
-		}
-
 		result = write_null_stream( fd(TARSTREAM_INPUT_W), file->d_name );
 
 		if ( result == -1 )
@@ -114,6 +100,4 @@ size_t process_control()
 	{
 		fprintf( stderr, "Finished processing control file\n" );
 	}
-
-	return size;
 }

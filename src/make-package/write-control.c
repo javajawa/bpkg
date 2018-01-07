@@ -81,18 +81,6 @@ void write_control( char * out, struct package_data stats )
 		errf( 0, "Only wrote %lu of %lu bytes of Size: to control file", result, len );
 	}
 
-	len = snprintf( buffer, 30, "Installed-Size: %lu\n", stats.installed_size >> 10 );
-	result = write( fd(CONTROL_W), buffer, len );
-
-	if ( result == -1 )
-	{
-		err( 0, "Error writing Installed-Size: to control file" );
-	}
-	if ( result != len )
-	{
-		errf( 0, "Only wrote %lu of %lu bytes of Installed-Size: to control file", result, len );
-	}
-
 	len = snprintf( buffer, 254, CHK1_NAME ": %s\n", stats.chk1 );
 	result = write( fd(CONTROL_W), buffer, len );
 

@@ -29,7 +29,6 @@ struct fd fds[ PIPES_MAX ];
 // Information about the resulting package which is used
 // to populate the package index.
 struct package_data stats = {
-	0,  // Size of files in package
 	0,  // Size of the packaged archive
 	"", // First checksum
 	""  // Second checksum
@@ -139,7 +138,7 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		stats.installed_size += process_control();
+		process_control();
 
 	// End control section
 	ar_footer();
@@ -159,7 +158,7 @@ int main( int argc, char ** argv )
 		pipe_fork_exec( xz, pipe(XZIP_INPUT_R), pipe(AR_INPUT_W) );
 
 		// Write out the data
-		stats.installed_size += process_data();
+		process_data();
 
 	// End data sections
 	ar_footer();

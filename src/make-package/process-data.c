@@ -19,14 +19,13 @@
 #include "common/null-stream.h"
 #include "common/tar.h"
 
-size_t process_data()
+void process_data()
 {
 	char file[256];
 	char byte;
 	char const * user, * group, * mask;
 
 	struct stat statf;
-	size_t size = 0;
 
 	size_t offset = 0;
 	size_t read_c = 0;
@@ -100,15 +99,6 @@ size_t process_data()
 			continue;
 		}
 
-		if ( stat( file, &statf ) )
-		{
-			errf( 0, "Error calling stat on %s", file );
-		}
-		else
-		{
-			size += statf.st_size;
-		}
-
 		match_rule( file, offset, &user, &group, &mask );
 
 		result = write_null_stream( fd(TARSTREAM_INPUT_W), file );
@@ -155,6 +145,4 @@ size_t process_data()
 	{
 		fprintf( stderr, "\rFinished processing manifest\n" );
 	}
-
-	return size;
 }

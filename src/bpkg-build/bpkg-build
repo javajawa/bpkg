@@ -39,17 +39,88 @@ NAME=${NAME#Package: }
 VERSION=`grep ^Version: debian/control`
 VERSION=${VERSION#Version: }
 
-test -e "${POOLDIR}/${NAME}_${VERSION}.deb" && {
+if [ -z "$2" -a -z "$VERSION" ]
+then
+	printf "No version specified in debian/control or on the command line\n" >&2
+	exit 1
+fi
+
+if [ -n "$2" -a -n "$VERSION" -a "$2" != "$VERSION" ]
+then
+	printf "Version in debian/control does not match CLI argument\n" >&2
+fi
+
+VERSION=${VERSION:-$2}
+
+mkdir -vp "${POOLDIR}/${NAME}/${VERSION}" || {
+	printf "Unable to make pool directory %s\n" "${POOLDIR}/${NAME}/${VERSION}" >&2
+	exit 1
+}
+
+test -e "${POOLDIR}/${NAME}/${VERSION}/${NAME}_${VERSION}.deb" && {
 	printf "${NAME}:${VERSION} already built\n" >&2
 	exit 0
 }
 
+test -t 1 -a -t 2 && QUIET= || QUIET=--quiet
+
 bpkg-checkbuilddeps && \
-make clean && \
-make build && \
-make manifest && \
-make-package "$DIR" "${POOLDIR}/${NAME}_${VERSION}.deb" && \
-printf "Done\n" >&2 || {
+make $QUIET clean && \
+make $QUIET build && \
+make $QUIET manifest || {
 	printf "Failed\n" >&2
 	exit 1
 }
+
+# Get the disk size of everything in the package
+xargs du -c --apparent-size <manifest >sizes
+
+# Find the total line in the sizes
+while read SIZE DIR
+do
+	test "$DIR" = total && break
+done <sizes
+
+rm -f sizes
+
+test -w "debian/control" || {
+	printf "Can not update debian/control file\n" >&2
+	exit 1
+}
+
+cp "debian/control" "debian/control.orig" || {
+	printf "Could not create temporary control file\n" >&2
+	exit 1
+}
+
+exec 3>"debian/control"
+
+while read LINE
+do
+	test -n "$LINE" || continue
+
+	FIELD="${LINE%%:*}"
+
+	test "$FIELD" = "Version" && continue
+	test "$FIELD" = "Installed-Size" && continue
+	test "$FIELD" = "Size" && continue
+	test "$FIELD" = "File" && continue
+	test "$FIELD" = "SHA256" && continue
+	test "$FIELD" = "SHA512" && continue
+
+	printf "%s\n" "$LINE" >&3
+done <"debian/control.orig"
+
+printf "Version: %s\n" "$VERSION" >&3
+printf "Installed-Size: %d\n" "$SIZE" >&3
+
+exec 3>&-
+
+make-package . "${POOLDIR}/${NAME}/${VERSION}/${NAME}_${VERSION}.deb"
+STATUS=$?
+
+mv "debian/control.orig" "debian/control" || {
+	printf "Unable to restore original control file\n" >&2
+}
+
+exit $STATUS

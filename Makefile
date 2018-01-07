@@ -7,8 +7,7 @@ TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpk
 
 PACKAGE := $(shell grep '^Package:' 'debian/control')
 PACKAGE := $(subst Package: ,,$(PACKAGE))
-VERSION := $(shell grep '^Version:' 'debian/control')
-VERSION := $(subst Version: ,,$(VERSION))
+VERSION ?= 1.0-1~bootstrap
 
 BUILD   := build
 
@@ -61,10 +60,10 @@ manifest: build
 	find etc usr >$@
 
 bootstrap: build
-	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb
-	rm -vf /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb.dat
-	PATH=./usr/bin:${PATH} bpkg-build .
-	@printf "\nRun \`sudo apt install /srv/www/bpkg/pool/$(PACKAGE)_$(VERSION).deb\`\n"
+	rm -vf '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb'
+	rm -vf '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb.dat'
+	PATH=./usr/bin:${PATH} bpkg-build . $(VERSION)
+	@printf "\nRun \`sudo apt install '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb'\`\n"
 
 deps:
 	sudo apt --no-install-recommends c-compiler make
