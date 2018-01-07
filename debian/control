@@ -6,5 +6,5 @@ Architecture: amd64
 Build-Depends: c-compiler | gcc, make
 Depends: libc6, make, xz-utils, libdpkg-perl, libdpkg-parse-perl
 Essential: no
-Maintainer: Benedict Harcourt <ben.harcourt@harcourtprogramming.co.uk>
-Description: Configuration files for fakeuser
+Maintainer: Benedict Harcourt <packages@tea-cats.co.uk>
+Description: Simple Debian Binary-Package Handling toolchain
