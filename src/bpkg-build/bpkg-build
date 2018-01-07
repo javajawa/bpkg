@@ -1,4 +1,5 @@
 #!/bin/sh
+# vim: nospell
 
 check()
 {
@@ -17,6 +18,8 @@ check make-package
 check ar-stream
 check tar-stream
 check xz
+check sha256sum
+check sha512sum
 
 mkdir -p "${POOLDIR}" || {
 	printf "Unable to make pool directory %s\n" "$POOLDIR" >&2
