@@ -1,6 +1,5 @@
 Source: bpkg
 Package: bpkg
-Version: 1.0-1
 Section: devel
 Priority: optional
 Architecture: amd64
