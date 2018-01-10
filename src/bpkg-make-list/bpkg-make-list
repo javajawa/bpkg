@@ -5,14 +5,6 @@ umask 022
 
 . "/etc/bpkg.conf"
 
-TMPDIR=`mktemp -d`
-
-cleanup()
-{
-	rm -Rf "$TMPDIR"
-}
-trap cleanup TERM EXIT KILL
-
 mkdir -p "$DISTDIR"
 
 checksum()
@@ -32,8 +24,7 @@ component_arch()
 	DIR="$DISTDIR/$DIST/$COMPONENT/binary-$ARCH"
 	PACKAGES=Packages
 
-	mkdir -p "$DIR/${PACKAGES}.diff"
-
+	mkdir -p "$DIR"
 	test -r "$DIR/$PACKAGES" || touch "$DIR/$PACKAGES"
 
 	test -r "$DIR/Release" || \
@@ -45,55 +36,9 @@ component_arch()
 		Architecture: $ARCH
 	EOF
 
-	test -r "$DIR/${PACKAGES}.diff/Index.tmp" || \
-	cat >"$DIR/${PACKAGES}.diff/Index.tmp" <<- EOF
-		SHA1-Current: `checksum sha1 "$DIR/$PACKAGES"`
-		SHA256-Current: `checksum sha256 "$DIR/$PACKAGES"`
-		SHA1-History:
-		SHA256-History:
-		SHA1-Patches:
-		SHA256-Patches:
-		SHA1-Download:
-		SHA256-Download:
-	EOF
-
 	find "$POOLDIR" -name "*.dat" -exec grep -e "Architecture: $ARCH" -l -e "Architecture: all" {} \+ | xargs sed -e "s@Filename: $BASEDIR/@Filename: @" >"$TMPDIR/packages"
 
-	if ! diff --ed "$DIR/$PACKAGES" "$TMPDIR/packages" >"$TMPDIR/diff"
-	then
-		DIFFNAME=`date -I`.${TMPDIR##*/}
-
-		exec 3>"$TMPDIR/diffindex"
-		printf "SHA1-Current: %s %10d\n"   `checksum sha1   "$TMPDIR/packages"` >&3
-		printf "SHA256-Current: %s %10d\n" `checksum sha256 "$TMPDIR/packages"` >&3
-		sed '/-Current:/d' "$DIR/${PACKAGES}.diff/Index.tmp" >&3
-
-		exec 3>&-
-
-		gzip -fk "$TMPDIR/diff"
-
-		printf " %s %10d %s\n" `checksum sha1   "$DIR/$PACKAGES"` "$DIFFNAME" >"$TMPDIR/s1hist"
-		printf " %s %10d %s\n" `checksum sha256 "$DIR/$PACKAGES"` "$DIFFNAME" >"$TMPDIR/s2hist"
-		printf " %s %10d %s\n" `checksum sha1   "$TMPDIR/diff"`   "$DIFFNAME" >"$TMPDIR/s1patch"
-		printf " %s %10d %s\n" `checksum sha256 "$TMPDIR/diff"`   "$DIFFNAME" >"$TMPDIR/s2patch"
-		printf " %s %10d %s\n" `checksum sha1   "$TMPDIR/diff.gz"` "${DIFFNAME}.gz" >"$TMPDIR/s1dl"
-		printf " %s %10d %s\n" `checksum sha256 "$TMPDIR/diff.gz"` "${DIFFNAME}.gz" >"$TMPDIR/s2dl"
-
-		sed -i "$TMPDIR/diffindex" \
-		 -e "/SHA1-History:/r$TMPDIR/s1hist" \
-		 -e "/SHA256-History:/r$TMPDIR/s2hist" \
-		 -e "/SHA1-Patches:/r$TMPDIR/s1patch" \
-		 -e "/SHA256-Patches:/r$TMPDIR/s2patch" \
-		 -e "/SHA1-Download:/r$TMPDIR/s1dl" \
-		 -e "/SHA256-Download:/r$TMPDIR/s2dl"
-
-		mv "$TMPDIR/diffindex" "$DIR/${PACKAGES}.diff/Index.tmp"
-		mv "$TMPDIR/packages"  "$DIR/$PACKAGES"
-		mv "$TMPDIR/diff.gz"   "$DIR/${PACKAGES}.diff/${DIFFNAME}.gz"
-
-		compress "$DIR/$PACKAGES"
-		compress "$DIR/${PACKAGES}.diff/Index.tmp"
-	fi
+	compress "$DIR/$PACKAGES"
 }
 
 for COMPONENT in $COMPONENTS
