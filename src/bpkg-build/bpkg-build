@@ -1,6 +1,8 @@
 #!/bin/sh
 # vim: nospell
 
+umask 007
+
 check()
 {
 	command -v "$1" >/dev/null 2>/dev/null && return 0
@@ -98,7 +100,7 @@ cp "debian/control" "debian/control.orig" || {
 
 exec 3>"debian/control"
 
-while read LINE
+while IFS= read -r LINE
 do
 	test -n "$LINE" || continue
 
