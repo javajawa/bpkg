@@ -66,20 +66,14 @@ bootstrap: build
 	@printf "\nRun \`sudo apt install '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb'\`\n"
 
 deps:
-	sudo apt --no-install-recommends c-compiler make
-	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
-
-valgrind: debug manifest
-	rm -f valgrind
-	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
-
-deps:
 	# Build-Depends:
-	sudo apt --no-install-recommends c-compiler make
+	command -v cc || sudo apt --no-install-recommends install gcc
+	command -v make || sudo apt --no-install-recommends install make
 	# Depends:
-	sudo apt --no-install-recommends libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
+	sudo apt --no-install-recommends install libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
 
 valgrind: debug manifest
+	command -v valgrind
 	rm -f valgrind
 	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
 
