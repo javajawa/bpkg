@@ -50,13 +50,18 @@ then
 	printf "Version in debian/control does not match CLI argument\n" >&2
 fi
 
+# Finalise the determined version
 VERSION=${VERSION:-$2}
+
+# Determins where the file is to be written to
+DESTINATION=${3:-$DIR}
 
 # Seal all variables
 readonly NAME
 readonly VERSION
+readonly DESTINATION
 
-if [ -e "${NAME}_${VERSION}.deb" ]
+if [ -e "${DESTINATION}/${NAME}_${VERSION}.deb" ]
 then
 	printf "${NAME}:${VERSION} already built\n" >&2
 	exit 0
@@ -116,7 +121,8 @@ printf "Installed-Size: %d\n" "$SIZE" >&3
 
 exec 3>&-
 
-make-package . "${NAME}_${VERSION}.deb"
+mkdir -vp "${DESTINATION}"
+make-package . "${DESTINATION}/${NAME}_${VERSION}.deb"
 STATUS=$?
 
 mv "debian/control.orig" "debian/control" || {
