@@ -41,7 +41,7 @@ NAME=`grep ^Package: debian/control`
 NAME=${NAME#Package: }
 
 # The architecture is specified in the control file,
-# or supplied at build time for multi-arch pacakges.
+# or supplied at build time for multi-arch packages.
 CTL_ARCH=`grep ^Architecture: debian/control`
 CTL_ARCH=${CTL_ARCH#Architecture :}
 
@@ -77,7 +77,7 @@ fi
 # Finalise the determined version
 VERSION=${VERSION:-$2}
 
-# Determins where the file is to be written to
+# Determines where the file is to be written to
 DESTINATION=${3:-$DIR}
 
 # Seal all variables
