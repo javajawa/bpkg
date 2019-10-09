@@ -23,11 +23,6 @@ check xz
 check sha256sum
 check sha512sum
 
-mkdir -p "${POOLDIR}" || {
-	printf "Unable to make pool directory %s\n" "$POOLDIR" >&2
-	exit 1
-}
-
 DIR=${1:-.}
 
 cd "$DIR"
@@ -57,15 +52,15 @@ fi
 
 VERSION=${VERSION:-$2}
 
-mkdir -vp "${POOLDIR}/${NAME}/${VERSION}" || {
-	printf "Unable to make pool directory %s\n" "${POOLDIR}/${NAME}/${VERSION}" >&2
-	exit 1
-}
+# Seal all variables
+readonly NAME
+readonly VERSION
 
-test -e "${POOLDIR}/${NAME}/${VERSION}/${NAME}_${VERSION}.deb" && {
+if [ -e "${NAME}_${VERSION}.deb" ]
+then
 	printf "${NAME}:${VERSION} already built\n" >&2
 	exit 0
-}
+fi
 
 test -t 1 -a -t 2 && QUIET= || QUIET=--quiet
 
@@ -121,7 +116,7 @@ printf "Installed-Size: %d\n" "$SIZE" >&3
 
 exec 3>&-
 
-make-package . "${POOLDIR}/${NAME}/${VERSION}/${NAME}_${VERSION}.deb"
+make-package . "${NAME}_${VERSION}.deb"
 STATUS=$?
 
 mv "debian/control.orig" "debian/control" || {
