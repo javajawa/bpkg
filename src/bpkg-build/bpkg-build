@@ -44,6 +44,23 @@ fi
 NAME=`grep ^Package: debian/control`
 NAME=${NAME#Package: }
 
+# The architecture is specified in the control file,
+# or supplied at build time for multi-arch pacakges.
+CTL_ARCH=`grep ^Architecture: debian/control`
+CTL_ARCH=${CTL_ARCH#Architecture :}
+
+if [ -z "$ARCHITECTURE" -a -z "$CTL_ARCH" ]
+then
+	printf "No architecture supplied in env or control file" >&2
+fi
+
+if [ -n "$ARCHITECTURE" -a -n "$CTL_ARCH" -a "$ARCHITECTURE" != "$CTL_ARCH" ]
+then
+	printf "Architecture supplied on command like (%s) does not match that in control file (%s)\n" "$CTL_ARCH" "$ARCHITECTURE" >&2
+fi
+
+ARCHITECTURE=${ARCHITECTURE:-${CTL_ARCH}}
+
 # The version of a package can be defined in either the
 # control file, or given on the command line.
 # In the event both are supplied, they are required to match.
@@ -70,9 +87,10 @@ DESTINATION=${3:-$DIR}
 # Seal all variables
 readonly NAME
 readonly VERSION
+readonly ARCHITECTURE
 readonly DESTINATION
 
-if [ -e "${DESTINATION}/${NAME}_${VERSION}.deb" ]
+if [ -e "${DESTINATION}/${NAME}_${VERSION}_${ARCHITECTURE}.deb" ]
 then
 	printf "${NAME}:${VERSION} already built\n" >&2
 	exit 0
@@ -129,13 +147,18 @@ do
 	printf "%s\n" "$LINE" >&3
 done <"debian/control.orig"
 
+if [ -z "${CTL_ARCH}" ]
+then
+	printf "Architecture: %s\n" "$ARCHITECTURE" >&3
+fi
+
 printf "Version: %s\n" "$VERSION" >&3
 printf "Installed-Size: %d\n" "$SIZE" >&3
 
 exec 3>&-
 
 mkdir -vp "${DESTINATION}"
-make-package . "${DESTINATION}/${NAME}_${VERSION}.deb"
+make-package . "${DESTINATION}/${NAME}_${VERSION}_${ARCHITECTURE}.deb"
 STATUS=$?
 
 mv "debian/control.orig" "debian/control" || {
