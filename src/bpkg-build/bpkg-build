@@ -30,12 +30,23 @@ cd "$DIR"
 if [ ! -r debian/control ]
 then
 	printf "No control file\n" >&2
+
+	if [ -z "$1" ]
+	then
+		printf "Usage: %s [package directory] [version] [destination]\n" "$0" >&2
+	fi
+
 	exit 1
 fi
 
+# The name of the package can only be set from the control
+# file with the Package: line.
 NAME=`grep ^Package: debian/control`
 NAME=${NAME#Package: }
 
+# The version of a package can be defined in either the
+# control file, or given on the command line.
+# In the event both are supplied, they are required to match.
 VERSION=`grep ^Version: debian/control`
 VERSION=${VERSION#Version: }
 
@@ -67,6 +78,8 @@ then
 	exit 0
 fi
 
+# Supply --quiet to all make(1) calls unless we have an interactive
+# terminal; this is intended to keep automated builds readable.
 test -t 1 -a -t 2 && QUIET= || QUIET=--quiet
 
 bpkg-checkbuilddeps && \
