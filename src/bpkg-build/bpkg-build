@@ -10,10 +10,6 @@ check()
 	exit 255
 }
 
-test -r /etc/bpkg.conf && {
-	. /etc/bpkg.conf
-}
-
 check make
 check bpkg-checkbuilddeps
 check make-package
