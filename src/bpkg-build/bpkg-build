@@ -43,7 +43,7 @@ NAME=${NAME#Package: }
 # The architecture is specified in the control file,
 # or supplied at build time for multi-arch packages.
 CTL_ARCH=`grep ^Architecture: debian/control`
-CTL_ARCH=${CTL_ARCH#Architecture :}
+CTL_ARCH=${CTL_ARCH#Architecture: }
 
 if [ -z "$ARCHITECTURE" -a -z "$CTL_ARCH" ]
 then
