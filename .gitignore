@@ -1,3 +1,4 @@
 *.o
-usr/bin
-manifest
+/usr/bin
+/manifest
+/test-bpkg.deb*

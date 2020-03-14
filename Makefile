@@ -7,6 +7,8 @@ TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpk
 
 PACKAGE := $(shell grep '^Package:' 'debian/control')
 PACKAGE := $(subst Package: ,,$(PACKAGE))
+ARCH    := $(shell grep '^Architecture:' 'debian/control')
+ARCH    := $(subst Architecture: ,,$(PACKAGE))
 VERSION ?= 1.0-1~bootstrap
 
 BUILD   := build
@@ -60,10 +62,10 @@ manifest: build
 	find etc usr >$@
 
 bootstrap: build
-	rm -vf '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb'
-	rm -vf '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb.dat'
+	rm -vf '$(PACKAGE)_$(VERSION)_$(ARCH).deb'
+	rm -vf '$(PACKAGE)_$(VERSION)_$(ARCH).deb.dat'
 	PATH=./usr/bin:${PATH} bpkg-build . $(VERSION)
-	@printf "\nRun \`sudo apt install '/srv/www/bpkg/pool/$(PACKAGE)/$(VERSION)/$(PACKAGE)_$(VERSION).deb'\`\n"
+	@printf "\nRun \`sudo apt install '$(PACKAGE)_$(VERSION)_$(ARCH).deb'\`\n"
 
 deps:
 	# Build-Depends:
@@ -73,9 +75,9 @@ deps:
 	sudo apt --no-install-recommends install libc6 make xz-utils libdpkg-perl libdpkg-parse-perl
 
 valgrind: debug manifest
-	command -v valgrind
-	rm -f valgrind
-	valgrind --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . valgrind
+	rm -f ./test-bpkg.deb ./test-bpkg.deb.dat
+	PATH=./usr/bin:${PATH} valgrind --quiet --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . test-bpkg.deb
+	dpkg -e test-bpkg.deb
 
 clean:
 	rm -Rf $(BUILD) usr manifest
