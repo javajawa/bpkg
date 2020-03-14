@@ -10,7 +10,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/sendfile.h>
+#include "common/sendfile.h"
 
 #include "files.h"
 #include "error.h"
