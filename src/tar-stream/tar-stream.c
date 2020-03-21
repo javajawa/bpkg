@@ -272,6 +272,17 @@ uint8_t verify_input_data(
 	return err;
 }
 
+/**
+ * Open a specified file, and run stat(2) on the opened file descriptor.
+ * The file is opened with read-only and with O_NOFOLLOW in all cases.
+ *
+ * - ctx:   context directory file descriptor, like openat(2)
+ * - path:  path relative to ctx to open
+ * - stat:  [out] the stat(2) block
+ * - flags: extra open(2) flags. Used for a self-call for handling symlinks.
+ *
+ * Returns the opened file descriptor number, or -1 if an error occured.
+ */
 int openat_stat( int ctx, char const * const path, struct estat * const stat, int flags )
 {
 	int fd, code;
@@ -286,6 +297,10 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 
 		switch ( code )
 		{
+			// If the file is a symlink, on Linux, ELOOP is given when
+			// O_NOFOLLOW is specified but O_PATH is not.
+			// However, adding O_PATH prevents reading the contents.
+			// This is solves with a self call with the extra flag.
 			case ELOOP:
 				return openat_stat( ctx, path, stat, O_PATH );
 
@@ -301,23 +316,36 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 				errf( 0, "Unable to read file %s", path );
 		}
 
-		return 0;
+		return -1;
 	}
 
-
+	// Attempt to lock files where possible.
+	// If we have used O_PATH in the flag set, we can not lock the file.
 	if ( ( flags &~ O_PATH ) && flock( fd, LOCK_SH ) )
 	{
 		errf( 0, "Unable to lock file %s", path );
 		close( fd );
 
-		return 0;
+		return -1;
 	}
 
-	// Get stat info about the file
+	// Get stat info about the file (descriptor)
 	code = fstat( fd, &stat->stat );
 
+	if ( code == -1 )
+	{
+		errf( 0, "Unable to stat file %s", path );
+		close( fd );
+
+		return -1;
+	}
+
+	// Check that symlinks meet the requirement of a maximum
+	// of 100 characters in the target value.
+	// This is a limitation of the ustar format -- see src/common/tar.h.
 	if ( ( stat->stat.st_mode & S_IFMT ) == S_IFLNK )
 	{
+		// code here is the number of bytes read.
 		code = readlinkat( ctx, path, temp_path, 101 );
 
 		if ( code == 101 )
@@ -325,25 +353,18 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 			errfs( 0, "Link %s is over 100 characters", path );
 			close( fd );
 
-			return 0;
+			return -1;
 		}
 
 		code = readlinkat( ctx, path, stat->link, 100 );
+		// Ensure the link properly is null-terminated.
 		stat->link[code] = 0;
 	}
 	else
 	{
+		// Truncate the link property, as this extended-stat
+		// object may have been re-used from a previous link.
 		stat->link[0] = 0;
-	}
-
-	if ( code == -1 )
-	{
-		code = errno;
-
-		errf( 0, "Unable to stat file %s", path );
-		close( fd );
-
-		return 0;
 	}
 
 	return fd;
@@ -530,7 +551,7 @@ int main( int argc, char** argv )
 			return 3;
 		}
 
-		if ( ( fd = openat_stat( context_dir, file, &file_stat, 0 ) ) == 0 )
+		if ( ( fd = openat_stat( context_dir, file, &file_stat, 0 ) ) == -1 )
 		{
 			continue;
 		}
