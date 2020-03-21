@@ -8,7 +8,7 @@ TARGETS := $(addprefix usr/bin/,make-package ar-stream tar-stream bpkg-build bpk
 PACKAGE := $(shell grep '^Package:' 'debian/control')
 PACKAGE := $(subst Package: ,,$(PACKAGE))
 ARCH    := $(shell grep '^Architecture:' 'debian/control')
-ARCH    := $(subst Architecture: ,,$(PACKAGE))
+ARCH    := $(subst Architecture: ,,$(ARCH))
 VERSION ?= 1.0-1~bootstrap
 
 BUILD   := build
@@ -65,7 +65,7 @@ bootstrap: build
 	rm -vf '$(PACKAGE)_$(VERSION)_$(ARCH).deb'
 	rm -vf '$(PACKAGE)_$(VERSION)_$(ARCH).deb.dat'
 	PATH=./usr/bin:${PATH} bpkg-build . $(VERSION)
-	@printf "\nRun \`sudo apt install '$(PACKAGE)_$(VERSION)_$(ARCH).deb'\`\n"
+	@printf "\nRun \`sudo apt install './$(PACKAGE)_$(VERSION)_$(ARCH).deb'\`\n"
 
 deps:
 	# Build-Depends:
@@ -77,7 +77,8 @@ deps:
 valgrind: debug manifest
 	rm -f ./test-bpkg.deb ./test-bpkg.deb.dat
 	PATH=./usr/bin:${PATH} valgrind --quiet --leak-check=full --track-origins=yes --trace-children=yes --trace-children-skip=\*sum,\*xz usr/bin/make-package . test-bpkg.deb
-	dpkg -e test-bpkg.deb
+	dpkg -c test-bpkg.deb
 
 clean:
 	rm -Rf $(BUILD) usr manifest
+	rm -f test-bpkg.deb test-bpkg.deb.dat '$(PACKAGE)_$(VERSION)_$(ARCH).deb' '$(PACKAGE)_$(VERSION)_$(ARCH).deb.dat'

@@ -1,22 +1,31 @@
 #ifndef _BPKG_CHECKSUMS_H
 #define _BPKG_CHECKSUMS_H
 
-#include <stddef.h>
-
 // vim: nospell
 
-// Define two checksum commands
-// The command _COMMAND is run with no arguments,
-// and the first _SIZE bytes of the output is taken as
-// the checksum.
+#include <stddef.h>
 
-#define CHK1_COMMAND "sha256sum"
-#define CHK1_NAME    "SHA256"
-#define CHK1_SIZE    64
+// Defines the two checksum commands.
+//
+// The command _COMMAND is is in execv(3) format, a list of strings
+// with the first one being the program name, and a NULL terminator.
+//
+// This program will be run, and the input passed via standard input.
+// When the package is finished, standard input will be closed, and the
+// first _SIZE bytes of the output is taken as the checksum.
+//
+// The _NAME field is the field name in the outputted control file.
 
-#define CHK2_COMMAND "sha512sum"
-#define CHK2_NAME    "SHA512"
-#define CHK2_SIZE    128
+// Precisely two checksums are used; generally these represent the
+// current compatiable with everyone version, and the aspirational version.
+
+#define CHK1_NAME "SHA256"
+#define CHK1_SIZE 64
+static char * const CHK1_COMMAND[] = {"sha256sum", NULL};
+
+#define CHK2_NAME "SHA512"
+#define CHK2_SIZE 128
+static char * const CHK2_COMMAND[] = {"sha512sum", NULL};
 
 struct package_data
 {

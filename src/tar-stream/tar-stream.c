@@ -4,23 +4,18 @@
 #define _GNU_SOURCE
 #endif
 
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <limits.h>
-#include <fcntl.h>
+#include <stdint.h>   // unint*_t for checksums and verification
+#include <sys/file.h> // flock(2)
 
 #include <pwd.h>
 #include <grp.h>
 
-#define PROGRAM_NAME "tar-stream"
+#include "error.h"
+#include "openat-tools.h"
 
-#include "common/error.h"
 #include "common/null-stream.h"
 #include "common/tar.h"
+
 
 #define BUFFER_SIZE 4096
 
@@ -29,12 +24,6 @@
 #endif
 
 static char buffer[BUFFER_SIZE];
-
-struct estat
-{
-	struct stat stat;
-	char link[100];
-};
 
 size_t valid_name( char const * const name, size_t const len )
 {
@@ -167,36 +156,6 @@ void write_tar_stream( int const fd, ssize_t const size )
 	}
 }
 
-int open_context_dir( char const * const dir )
-{
-	int context_dir;
-
-	context_dir = open( dir, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_PATH | O_NOCTTY );
-
-	if ( context_dir == -1 )
-	{
-		switch ( errno )
-		{
-			case EPERM:
-				errfs( 0, "Not permitted to open %s", dir );
-				return EPERM;
-
-			case ELOOP:
-				errfs( 0, "Refusing to operate on symlink directory %s", dir );
-				return ELOOP;
-
-			case ENOENT:
-				errfs( 0, "Unable to find context directory %s", dir );
-				return ENOENT;
-
-			default:
-				errf( 0, "Error opening %s", dir );
-		}
-	}
-
-	return context_dir;
-}
-
 uint8_t verify_input_data(
 	const char * const file,  const size_t file_len,
 	const char * const user,  const size_t user_len,
@@ -270,81 +229,6 @@ uint8_t verify_input_data(
 	}
 
 	return err;
-}
-
-int openat_stat( int ctx, char const * const path, struct estat * const stat, int flags )
-{
-	int fd, code;
-
-	// Attempt to open the file
-	fd = openat( ctx, path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | flags );
-
-	if ( fd == -1 )
-	{
-		code = errno;
-
-		switch ( code )
-		{
-			case ELOOP:
-				return openat_stat( ctx, path, stat, O_PATH );
-
-			case EACCES:
-				errfs( 0, "Access denied to %s", path );
-				break;
-
-			case ENOENT:
-				errfs( 0, "%s does not exist", path );
-				break;
-
-			default:
-				errf( 0, "Unable to read file %s", path );
-		}
-
-		return 0;
-	}
-
-
-	if ( ( flags &~ O_PATH ) && flock( fd, LOCK_SH ) )
-	{
-		errf( 0, "Unable to lock file %s", path );
-		close( fd );
-
-		return 0;
-	}
-
-	// Get stat info about the file
-	code = fstat( fd, &stat->stat );
-
-	if ( ( stat->stat.st_mode & S_IFMT ) == S_IFLNK )
-	{
-		code = readlinkat( ctx, path, stat->link, 101 );
-
-		if ( code == 101 )
-		{
-			errfs( 0, "Link %s is over 100 characters", path );
-			close( fd );
-
-			return 0;
-		}
-
-		stat->link[code] = 0;
-	}
-	else
-	{
-		stat->link[0] = 0;
-	}
-
-	if ( code == -1 )
-	{
-		code = errno;
-
-		errf( 0, "Unable to stat file %s", path );
-		close( fd );
-
-		return 0;
-	}
-
-	return fd;
 }
 
 ssize_t make_header( struct star_header * const header, struct estat const stat, char const * const file, size_t const file_len, char const * const user, char const * const group, uint16_t const mask )
@@ -429,11 +313,11 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 	snprintf( header->gid,     8, "%07o",      gid );
 	snprintf( header->size,   12, "%011lo",    size );
 	snprintf( header->mtime,  12, "%011lo",    stat.stat.st_mtim.tv_sec );
-	strncpy ( header->chksum,     "        ",  8 );
+	memcpy  ( header->chksum,     "        ",  8 );
 	header->typeflag = file_type;
 	strncpy ( header->linkname,   stat.link,   100 );
 	strncpy ( header->magic,      TAR_MAGIC,   TAR_MAGLEN );
-	strncpy ( header->version,    TAR_VERSION, TAR_VERSLEN );
+	memcpy  ( header->version,    TAR_VERSION, TAR_VERSLEN );
 	strncpy ( header->uname,      user,        TAR_USERLEN );
 	strncpy ( header->gname,      group,       TAR_USERLEN );
 	memset  ( header->devmajor,   0,           16 + 131 + 36 );
@@ -525,7 +409,7 @@ int main( int argc, char** argv )
 			return 3;
 		}
 
-		if ( ( fd = openat_stat( context_dir, file, &file_stat, 0 ) ) == 0 )
+		if ( ( fd = openat_stat( context_dir, file, &file_stat ) ) == -1 )
 		{
 			continue;
 		}
