@@ -6,6 +6,25 @@
 
 #include "error.h"
 
+/**
+ * Different libc-s on different operating systems have different
+ * flag for the open(2) family of functions.
+ *
+ * In this code base, we use O_PATH to mean "only open the path/node,
+ * not the file contents", and O_SYMLINK as "operate directly on a
+ * symlink".
+ *
+ * On Linux, with O_PATH fills both of these purposes.
+ * Some systems do not have the path-only flag.
+ */
+#ifndef O_PATH
+#define O_PATH 0
+#endif
+
+#ifndef O_SYMLINK
+#define O_SYMLINK O_PATH
+#endif
+
 int open_context_dir( char const * const dir )
 {
 	int context_dir;
@@ -63,12 +82,12 @@ int openat_stat_impl( int ctx, char const * const path, struct estat * const sta
 
 		switch ( code )
 		{
-			// If the file is a symlink, on Linux, ELOOP is given when
-			// O_NOFOLLOW is specified but O_PATH is not.
+			// If the file is a symlink, ELOOP is given when O_NOFOLLOW
+			// is specified but O_PATH (linux) or O_SYMLINK (*bsd) is not.
 			// However, adding O_PATH prevents reading the contents.
 			// This is solves with a self call with the extra flag.
 			case ELOOP:
-				return openat_stat_impl( ctx, path, stat, O_PATH );
+				return openat_stat_impl( ctx, path, stat, flags | O_SYMLINK );
 
 			case EACCES:
 				errfs( 0, "Access denied to %s", path );
