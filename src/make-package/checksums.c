@@ -10,9 +10,6 @@
 
 void process_output( char * output, struct package_data* stats )
 {
-	char * const chk1cmd[] = { CHK1_COMMAND, NULL };
-	char * const chk2cmd[] = { CHK2_COMMAND, NULL };
-
 	char buffer[4096];
 
 	ssize_t b_read;
@@ -35,8 +32,8 @@ void process_output( char * output, struct package_data* stats )
 	create_pipes( pipe(CHK2_INPUT_R) );
 	create_pipes( pipe(CHK2_OUTPUT_R) );
 
-	pipe_fork_exec( chk1cmd, pipe(CHK1_INPUT_R), pipe(CHK1_OUTPUT_W) );
-	pipe_fork_exec( chk2cmd, pipe(CHK2_INPUT_R), pipe(CHK2_OUTPUT_W) );
+	pipe_fork_exec( CHK1_COMMAND, pipe(CHK1_INPUT_R), pipe(CHK1_OUTPUT_W) );
+	pipe_fork_exec( CHK2_COMMAND, pipe(CHK2_INPUT_R), pipe(CHK2_OUTPUT_W) );
 
 	while ( 1 )
 	{
@@ -58,22 +55,22 @@ void process_output( char * output, struct package_data* stats )
 
 		if ( b_write == -1 )
 		{
-			err( 0, "Error writing to '" CHK1_COMMAND "'" );
+			err( 0, "Error writing to '" CHK1_NAME "' tool" );
 		}
 		if ( b_write != b_read )
 		{
-			errfs( 0, "Size mismatch: wrote %lu bytes of %lu to '" CHK1_COMMAND "'", b_write, b_read );
+			errfs( 0, "Size mismatch: wrote %lu bytes of %lu to '" CHK1_NAME "'", b_write, b_read );
 		}
 
 		b_write = write( fd(CHK2_INPUT_W), buffer, b_read );
 
 		if ( b_write == -1 )
 		{
-			err( 0, "Error writing to '" CHK2_COMMAND "'" );
+			err( 0, "Error writing to '" CHK2_NAME "' tool" );
 		}
 		if ( b_write != b_read )
 		{
-			errfs( 0, "Size mismatch: wrote %lu bytes of %lu to '" CHK2_COMMAND "'", b_write, b_read );
+			errfs( 0, "Size mismatch: wrote %lu bytes of %lu to '" CHK2_NAME "'", b_write, b_read );
 		}
 	}
 
@@ -84,22 +81,22 @@ void process_output( char * output, struct package_data* stats )
 
 	if ( b_read == -1 )
 	{
-		err( 0, "Error reading response from '" CHK1_COMMAND "' output" );
+		err( 0, "Error reading response for checksum '" CHK1_NAME "'" );
 	}
 	if ( b_read != CHK1_SIZE )
 	{
-		errfs( 0, "Incorrect size from '" CHK1_COMMAND "', expected %d, got %lu", CHK1_SIZE, b_read );
+		errfs( 0, "Incorrect size for checksum '" CHK1_NAME "', expected %d, got %lu", CHK1_SIZE, b_read );
 	}
 
 	b_read = read( fd(CHK2_OUTPUT_R), stats->chk2, CHK2_SIZE );
 
 	if ( b_read == -1 )
 	{
-		err( 0, "Error reading response from '" CHK2_COMMAND "' output" );
+		err( 0, "Error reading response for checksum '" CHK2_NAME "'" );
 	}
 	if ( b_read != CHK2_SIZE )
 	{
-		errfs( 0, "Incorrect size from '" CHK2_COMMAND "', expected %d, got %lu", CHK2_SIZE, b_read );
+		errfs( 0, "Incorrect size for checksum '" CHK2_NAME "', expected %d, got %lu", CHK2_SIZE, b_read );
 	}
 
 	close_fd( pipe(CHK1_OUTPUT_R) );
