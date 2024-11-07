@@ -275,6 +275,7 @@ uint8_t verify_input_data(
 int openat_stat( int ctx, char const * const path, struct estat * const stat, int flags )
 {
 	int fd, code;
+	char temp_path[102];
 
 	// Attempt to open the file
 	fd = openat( ctx, path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | flags );
@@ -317,7 +318,7 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 
 	if ( ( stat->stat.st_mode & S_IFMT ) == S_IFLNK )
 	{
-		code = readlinkat( ctx, path, stat->link, 101 );
+		code = readlinkat( ctx, path, temp_path, 101 );
 
 		if ( code == 101 )
 		{
@@ -327,6 +328,7 @@ int openat_stat( int ctx, char const * const path, struct estat * const stat, in
 			return 0;
 		}
 
+		code = readlinkat( ctx, path, stat->link, 100 );
 		stat->link[code] = 0;
 	}
 	else
@@ -422,6 +424,8 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 
 	//fprintf( stderr, "Create mode %05ho %s:%s %s\n", mode, user, group, file );
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
 	// Configure the headers
 	strncpy ( header->name,       file + sep,  100 );
 	snprintf( header->mode,    8, "%07o",      mode );
@@ -439,6 +443,7 @@ ssize_t make_header( struct star_header * const header, struct estat const stat,
 	memset  ( header->devmajor,   0,           16 + 131 + 36 );
 	strncpy ( header->prefix,     file,        sep ? sep - 1 : 0 );
 	snprintf( header->chksum,  8, "%07o",      header_checksum( header ) );
+#pragma GCC diagnostic pop
 
 #ifdef HEADER_DEBUG
 	fputc_unlocked( '\n', stderr );

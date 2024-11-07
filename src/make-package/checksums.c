@@ -50,6 +50,7 @@ void process_output( char * output, struct package_data* stats )
 		if ( b_read == -1 )
 		{
 			err( 1, "Error reading from output file" );
+			break;
 		}
 
 		stats->packed_size += b_read;
